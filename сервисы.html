@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRL Team • Хаб</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #8e8e93;
+            --tg-theme-link-color: #2AABEE;
+            --tg-theme-button-color: #2AABEE;
+            --tg-theme-button-text-color: #ffffff;
+        }
+        :root {
+            --bg: var(--tg-theme-bg-color);
+            --bg2: var(--tg-theme-secondary-bg-color);
+            --text: var(--tg-theme-text-color);
+            --hint: var(--tg-theme-hint-color);
+            --accent: var(--tg-theme-button-color);
+            --accent-light: rgba(42, 171, 238, 0.12);
+            --btn-text: var(--tg-theme-button-text-color);
+            --green: #10B981;
+            --green-light: rgba(16, 185, 129, 0.12);
+            --purple: #8B5CF6;
+            --purple-light: rgba(139, 92, 246, 0.12);
+            --pink: #EC4899;
+            --pink-light: rgba(236, 72, 153, 0.12);
+            --orange: #F59E0B;
+            --orange-light: rgba(245, 158, 11, 0.12);
+            --radius: 16px;
+            --radius-sm: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+    </style>
+</head>
+<body>
+    <div class="header" id="header"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="services" class="tab-content active"></div>
+    <div id="resources" class="tab-content"></div>
+    <div id="community" class="tab-content"></div>
+    <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-handle"></div><div class="modal-body" id="modalBody"></div></div></div>
+    <div class="loader" id="loader"><div class="spinner"></div><div class="loader-text">Загрузка...</div></div>
+</body>
+</html>
+
+<style>
+    /* Header */
+    .header { background: var(--bg); padding: 16px 20px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--bg2); }
+    .header-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, var(--green), #14B8A6); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .header-avatar svg { width: 24px; height: 24px; color: #fff; }
+    .header-info { flex: 1; min-width: 0; }
+    .header-title { font-size: 18px; font-weight: 600; }
+    .header-sub { font-size: 13px; color: var(--hint); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+    .header-badge { background: var(--green-light); color: var(--green); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    
+    /* Tabs */
+    .tabs { display: flex; background: var(--bg); padding: 12px 16px; gap: 8px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--bg2); }
+    .tab { flex: 1; padding: 12px 16px; text-align: center; font-size: 14px; font-weight: 500; color: var(--hint); background: var(--bg2); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; }
+    .tab svg { width: 18px; height: 18px; }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab.active svg { color: #fff; }
+    .tab-badge { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    
+    /* Section */
+    .section { padding: 0 16px; }
+    .section-title { font-size: 13px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px 4px; font-weight: 600; }
+    
+    /* Service Grid */
+    .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+    .service-card { background: var(--bg); border-radius: var(--radius); padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow); }
+    .service-card:active { transform: scale(0.98); }
+    .service-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    .service-icon.purple { background: var(--purple-light); }
+    .service-icon.green { background: var(--green-light); }
+    .service-icon.pink { background: var(--pink-light); }
+    .service-icon.orange { background: var(--orange-light); }
+    .service-icon.blue { background: var(--accent-light); }
+    .service-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .service-desc { font-size: 12px; color: var(--hint); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+
+<style>
+    /* List */
+    .list { background: var(--bg); border-radius: var(--radius); overflow: hidden; margin: 0 16px 16px; box-shadow: var(--shadow); }
+    .list-item { display: flex; align-items: center; padding: 14px 16px; gap: 14px; cursor: pointer; transition: background 0.15s; text-decoration: none; color: inherit; }
+    .list-item:active { background: var(--bg2); }
+    .list-item:not(:last-child) { border-bottom: 1px solid var(--bg2); }
+    
+    .item-icon { width: 46px; height: 46px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .item-icon svg { width: 22px; height: 22px; }
+    .item-icon.resource { background: var(--green-light); color: var(--green); }
+    .item-icon.community { background: var(--pink-light); color: var(--pink); }
+    
+    .item-content { flex: 1; min-width: 0; }
+    .item-title { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub { font-size: 13px; color: var(--hint); margin-top: 3px; }
+    
+    .item-arrow { color: var(--hint); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+    .item-arrow svg { width: 18px; height: 18px; }
+    
+    /* Empty */
+    .empty { text-align: center; padding: 60px 20px; }
+    .empty-icon { width: 80px; height: 80px; margin: 0 auto 20px; background: var(--bg2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .empty-icon svg { width: 40px; height: 40px; color: var(--hint); }
+    .empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .empty-text { font-size: 14px; color: var(--hint); max-width: 260px; margin: 0 auto; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transition: all 0.25s; backdrop-filter: blur(4px); }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { position: fixed; bottom: 0; left: 0; right: 0; max-height: 85vh; background: var(--bg); border-radius: 24px 24px 0 0; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); overflow: hidden; display: flex; flex-direction: column; }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    .modal-handle { width: 36px; height: 4px; background: var(--hint); opacity: 0.3; border-radius: 2px; margin: 12px auto 8px; flex-shrink: 0; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 0 20px 30px; }
+    
+    .detail-header { text-align: center; padding: 20px 0 24px; }
+    .detail-icon { width: 80px; height: 80px; border-radius: 24px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .detail-icon.purple { background: linear-gradient(135deg, var(--purple), #7C3AED); }
+    .detail-icon.green { background: linear-gradient(135deg, var(--green), #14B8A6); }
+    .detail-icon.pink { background: linear-gradient(135deg, var(--pink), #F43F5E); }
+    .detail-icon.orange { background: linear-gradient(135deg, var(--orange), #F97316); }
+    .detail-icon.blue { background: linear-gradient(135deg, var(--accent), #1E96D1); }
+    .detail-name { font-size: 24px; font-weight: 700; }
+    .detail-desc { font-size: 15px; color: var(--hint); margin-top: 12px; line-height: 1.6; max-width: 320px; margin-left: auto; margin-right: auto; }
+    
+    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; text-decoration: none; margin-top: 12px; transition: all 0.15s; border: none; cursor: pointer; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--bg2); color: var(--text); }
+    .btn svg { width: 20px; height: 20px; }
+    
+    /* Tab Content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Loader */
+    .loader { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .loader.hidden { display: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--bg2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-size: 15px; color: var(--hint); }
+</style>
+
+<script>
+    // SVG Icons
+    const ICONS = {
+        globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+        tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+        book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+        users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+        file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+        bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>',
+        externalLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+        chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>',
+        inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>'
+    };
+    
+    const SERVICE_COLORS = ['purple', 'green', 'pink', 'orange', 'blue'];
+    
+    const SUPABASE_URL = 'https://aoyctqguudkdwgixlmvr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFveWN0cWd1dWRrZHdnaXhsbXZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjU0MDIsImV4cCI6MjA4MTkwMTQwMn0.AOpN7RldZ29C9fP41eMmAb66Jy9bnYwez3FT9V4qV5U';
+    
+    let db, tg;
+    try { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
+    try { tg = window.Telegram?.WebApp; if(tg) { tg.ready(); tg.expand(); } } catch(e) {}
+    
+    let services = [], resources = [];
+</script>
+
+<script>
+    // Header
+    document.getElementById('header').innerHTML = `
+        <div class="header-avatar">${ICONS.globe}</div>
+        <div class="header-info">
+            <div class="header-title">IRL Team</div>
+            <div class="header-sub">
+                <span>Хаб ресурсов</span>
+                <span class="header-badge">Hub</span>
+            </div>
+        </div>
+    `;
+    
+    // Tabs
+    document.getElementById('tabs').innerHTML = `
+        <div class="tab active" data-tab="services">${ICONS.tool} Сервисы</div>
+        <div class="tab" data-tab="resources">${ICONS.book} Ресурсы</div>
+        <div class="tab" data-tab="community">${ICONS.users} Чаты</div>
+    `;
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.onclick = () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab).classList.add('active');
+        };
+    });
+    
+    async function load() {
+        if (!db) { document.getElementById('loader').classList.add('hidden'); return; }
+        
+        const [sRes, rRes] = await Promise.all([
+            db.from('services').select('*').eq('is_active', true).order('name'),
+            db.from('resources').select('*').eq('is_active', true).order('title')
+        ]);
+        
+        services = sRes.data || [];
+        resources = rRes.data || [];
+        
+        document.getElementById('loader').classList.add('hidden');
+        render();
+    }
+    
+    function render() {
+        // Services
+        const servicesEl = document.getElementById('services');
+        if (!services.length) {
+            servicesEl.innerHTML = `<div class="section"><div class="empty"><div class="empty-icon">${ICONS.tool}</div><div class="empty-title">Нет сервисов</div><div class="empty-text">Сервисы появятся здесь после добавления</div></div></div>`;
+        } else {
+            servicesEl.innerHTML = `<div class="service-grid">${services.map((s, i) => {
+                const colorClass = SERVICE_COLORS[i % SERVICE_COLORS.length];
+                return `
+                <div class="service-card" onclick='showService(${JSON.stringify(s).replace(/'/g,"&#39;")}, "${colorClass}")'>
+                    <div class="service-icon ${colorClass}">${s.icon || '🔹'}</div>
+                    <div class="service-name">${s.name}</div>
+                    ${s.description ? `<div class="service-desc">${s.description}</div>` : ''}
+                </div>`;
+            }).join('')}</div>`;
+        }
+        
+        // Resources
+        const resourceItems = resources.filter(r => r.type === 'resource');
+        const resourcesEl = document.getElementById('resources');
+        if (!resourceItems.length) {
+            resourcesEl.innerHTML = `<div class="section"><div class="empty"><div class="empty-icon">${ICONS.book}</div><div class="empty-title">Нет ресурсов</div><div class="empty-text">Материалы появятся здесь после добавления</div></div></div>`;
+        } else {
+            resourcesEl.innerHTML = `
+                <div class="section"><div class="section-title">Материалы и гайды</div></div>
+                <div class="list">${resourceItems.map(r => `
+                    <a href="${r.content_link}" target="_blank" class="list-item">
+                        <div class="item-icon resource">${ICONS.file}</div>
+                        <div class="item-content">
+                            <div class="item-title">${r.title}</div>
+                            <div class="item-sub">Открыть документ</div>
+                        </div>
+                        <div class="item-arrow">${ICONS.externalLink}</div>
+                    </a>
+                `).join('')}</div>`;
+        }
+        
+        // Community
+        const communityItems = resources.filter(r => r.type === 'community');
+        const communityEl = document.getElementById('community');
+        if (!communityItems.length) {
+            communityEl.innerHTML = `<div class="section"><div class="empty"><div class="empty-icon">${ICONS.users}</div><div class="empty-title">Нет чатов</div><div class="empty-text">Чаты сообщества появятся здесь</div></div></div>`;
+        } else {
+            communityEl.innerHTML = `
+                <div class="section"><div class="section-title">Сообщество</div></div>
+                <div class="list">${communityItems.map(r => `
+                    <a href="${r.content_link}" target="_blank" class="list-item">
+                        <div class="item-icon community">${ICONS.message}</div>
+                        <div class="item-content">
+                            <div class="item-title">${r.title}</div>
+                            <div class="item-sub">Присоединиться</div>
+                        </div>
+                        <div class="item-arrow">${ICONS.externalLink}</div>
+                    </a>
+                `).join('')}</div>`;
+        }
+    }
+    
+    function showService(s, colorClass) {
+        const hasLinks = s.bot_link || s.manual_link;
+        document.getElementById('modalBody').innerHTML = `
+            <div class="detail-header">
+                <div class="detail-icon ${colorClass}">${s.icon || '🔹'}</div>
+                <div class="detail-name">${s.name}</div>
+                ${s.description ? `<div class="detail-desc">${s.description}</div>` : ''}
+            </div>
+            ${s.bot_link ? `<a href="${s.bot_link}" target="_blank" class="btn btn-primary">${ICONS.bot} Открыть бота</a>` : ''}
+            ${s.manual_link ? `<a href="${s.manual_link}" target="_blank" class="btn btn-secondary">${ICONS.book} Читать мануал</a>` : ''}
+            ${!hasLinks ? `<div class="empty" style="padding: 30px;"><div class="empty-icon">${ICONS.inbox}</div><div class="empty-title">Ссылки не добавлены</div></div>` : ''}
+        `;
+        document.getElementById('modal').classList.add('active');
+    }
+    
+    document.getElementById('modal').onclick = e => { if(e.target.id === 'modal') document.getElementById('modal').classList.remove('active'); };
+    if(tg?.BackButton) { tg.BackButton.onClick(() => document.getElementById('modal').classList.remove('active')); }
+    
+    load();
+</script>

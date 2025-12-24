@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRL Team • Рефералы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #8e8e93;
+            --tg-theme-link-color: #2AABEE;
+            --tg-theme-button-color: #2AABEE;
+            --tg-theme-button-text-color: #ffffff;
+        }
+        :root {
+            --bg: var(--tg-theme-bg-color);
+            --bg2: var(--tg-theme-secondary-bg-color);
+            --text: var(--tg-theme-text-color);
+            --hint: var(--tg-theme-hint-color);
+            --accent: var(--tg-theme-button-color);
+            --accent-light: rgba(42, 171, 238, 0.12);
+            --btn-text: var(--tg-theme-button-text-color);
+            --green: #34C759;
+            --green-light: rgba(52, 199, 89, 0.12);
+            --orange: #FF9500;
+            --orange-light: rgba(255, 149, 0, 0.12);
+            --pink: #EC4899;
+            --pink-light: rgba(236, 72, 153, 0.12);
+            --radius: 16px;
+            --radius-sm: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header" id="header"></div>
+    <div class="stats-card" id="statsCard"></div>
+    <div class="info-card" id="infoCard"></div>
+    <div class="quick-stats" id="quickStats"></div>
+    <div class="section"><div class="section-title">Ваши рефералы</div><div id="content"></div></div>
+    <div class="modal-overlay" id="modal"><div class="modal"><div class="modal-handle"></div><div class="modal-header"><div class="modal-title">Детали реферала</div></div><div class="modal-body" id="modalBody"></div></div></div>
+    <div class="loader" id="loader"><div class="spinner"></div><div class="loader-text">Загрузка...</div></div>
+</body>
+</html>
+
+<style>
+    /* Header */
+    .header { background: var(--bg); padding: 16px 20px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--bg2); }
+    .header-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--pink), #F43F5E); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .header-avatar svg { width: 24px; height: 24px; color: #fff; }
+    .header-info { flex: 1; min-width: 0; }
+    .header-title { font-size: 18px; font-weight: 600; }
+    .header-sub { font-size: 13px; color: var(--hint); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+    .header-badge { background: var(--pink-light); color: var(--pink); padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    
+    /* Stats Card */
+    .stats-card { background: linear-gradient(135deg, #EC4899 0%, #F43F5E 50%, #FB7185 100%); margin: 16px; border-radius: var(--radius); padding: 24px 20px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3); }
+    .stats-card::before { content: ''; position: absolute; top: -60%; right: -20%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+    .stats-card::after { content: ''; position: absolute; bottom: -40%; left: -10%; width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+    .stats-label { font-size: 14px; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
+    .stats-label svg { width: 18px; height: 18px; }
+    .stats-amount { font-size: 40px; font-weight: 700; margin: 8px 0; letter-spacing: -1px; }
+    .stats-row { display: flex; gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); }
+    .stats-item { flex: 1; text-align: center; }
+    .stats-item-val { font-size: 20px; font-weight: 600; }
+    .stats-item-lbl { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+    
+    /* Info Card */
+    .info-card { background: var(--bg); border-radius: var(--radius); padding: 16px; margin: 0 16px 16px; display: flex; align-items: flex-start; gap: 14px; box-shadow: var(--shadow); }
+    .info-icon { width: 44px; height: 44px; background: var(--accent-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .info-icon svg { width: 22px; height: 22px; color: var(--accent); }
+    .info-content { flex: 1; }
+    .info-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .info-text { font-size: 14px; color: var(--hint); line-height: 1.5; }
+    
+    /* Quick Stats */
+    .quick-stats { display: flex; gap: 12px; padding: 0 16px; margin-bottom: 8px; overflow-x: auto; scrollbar-width: none; }
+    .quick-stats::-webkit-scrollbar { display: none; }
+    .quick-stat { background: var(--bg); border-radius: var(--radius-sm); padding: 14px 16px; min-width: 110px; flex-shrink: 0; box-shadow: var(--shadow); }
+    .quick-stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .quick-stat-icon svg { width: 20px; height: 20px; }
+    .quick-stat-icon.green { background: var(--green-light); color: var(--green); }
+    .quick-stat-icon.orange { background: var(--orange-light); color: var(--orange); }
+    .quick-stat-icon.pink { background: var(--pink-light); color: var(--pink); }
+    .quick-stat-val { font-size: 18px; font-weight: 700; }
+    .quick-stat-lbl { font-size: 12px; color: var(--hint); margin-top: 2px; }
+</style>
+
+<style>
+    /* Section */
+    .section { padding: 0 16px; }
+    .section-title { font-size: 13px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 12px 4px; font-weight: 600; }
+    
+    /* List */
+    .list { background: var(--bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+    .list-item { display: flex; align-items: center; padding: 14px 16px; gap: 12px; cursor: pointer; transition: background 0.15s; }
+    .list-item:active { background: var(--bg2); }
+    .list-item:not(:last-child) { border-bottom: 1px solid var(--bg2); }
+    
+    .avatar { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #1E96D1); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 17px; overflow: hidden; flex-shrink: 0; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .item-content { flex: 1; min-width: 0; }
+    .item-title { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub { font-size: 13px; color: var(--hint); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+    
+    .item-right { text-align: right; }
+    .item-amount { font-size: 17px; font-weight: 600; color: var(--green); }
+    .item-badge { font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+    .item-badge.active { color: var(--green); }
+    .item-badge.pending { color: var(--hint); }
+    
+    /* Empty */
+    .empty { text-align: center; padding: 60px 20px; }
+    .empty-icon { width: 80px; height: 80px; margin: 0 auto 20px; background: var(--bg2); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .empty-icon svg { width: 40px; height: 40px; color: var(--hint); }
+    .empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .empty-text { font-size: 14px; color: var(--hint); max-width: 260px; margin: 0 auto; line-height: 1.5; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transition: all 0.25s; backdrop-filter: blur(4px); }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal { position: fixed; bottom: 0; left: 0; right: 0; max-height: 80vh; background: var(--bg); border-radius: 24px 24px 0 0; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); overflow: hidden; display: flex; flex-direction: column; }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    .modal-handle { width: 36px; height: 4px; background: var(--hint); opacity: 0.3; border-radius: 2px; margin: 12px auto 8px; flex-shrink: 0; }
+    .modal-header { padding: 8px 20px 16px; text-align: center; border-bottom: 1px solid var(--bg2); }
+    .modal-title { font-size: 18px; font-weight: 600; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+    
+    .detail-header { text-align: center; padding: 16px 0 24px; }
+    .detail-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #1E96D1); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 26px; margin: 0 auto 12px; }
+    .detail-name { font-size: 20px; font-weight: 600; }
+    .detail-username { font-size: 14px; color: var(--hint); margin-top: 4px; }
+    .detail-amount { font-size: 28px; font-weight: 700; color: var(--green); margin-top: 12px; }
+    
+    .detail-card { background: var(--bg2); border-radius: var(--radius-sm); overflow: hidden; }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
+    .detail-row:not(:last-child) { border-bottom: 1px solid var(--bg); }
+    .detail-label { font-size: 15px; color: var(--hint); display: flex; align-items: center; gap: 8px; }
+    .detail-label svg { width: 18px; height: 18px; }
+    .detail-value { font-size: 15px; font-weight: 500; text-align: right; }
+    
+    /* Loader */
+    .loader { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .loader.hidden { display: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--bg2); border-top-color: var(--pink); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-size: 15px; color: var(--hint); }
+</style>
+
+<script>
+    // SVG Icons
+    const ICONS = {
+        link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+        users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>',
+        percent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+        calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',
+        user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+        at: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>',
+        check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+        clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        gift: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>',
+        trending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'
+    };
+    
+    const SUPABASE_URL = 'https://aoyctqguudkdwgixlmvr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFveWN0cWd1dWRrZHdnaXhsbXZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjU0MDIsImV4cCI6MjA4MTkwMTQwMn0.AOpN7RldZ29C9fP41eMmAb66Jy9bnYwez3FT9V4qV5U';
+    const REF_PERCENT = 5;
+    
+    let db, tg, userId, userPhoto, userName;
+    try { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
+    try { 
+        tg = window.Telegram?.WebApp; 
+        if(tg) { 
+            tg.ready(); 
+            tg.expand(); 
+            userId = tg.initDataUnsafe?.user?.id;
+            userPhoto = tg.initDataUnsafe?.user?.photo_url;
+            userName = tg.initDataUnsafe?.user?.first_name || 'Пользователь';
+        } 
+    } catch(e) {}
+    
+    const fmt = n => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
+    const fmtDate = d => new Date(d).toLocaleDateString('ru-RU', {day:'numeric', month:'short', year:'numeric'});
+    const fmtFull = d => new Date(d).toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    const getInitials = name => (name || 'U').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    const AVATAR_COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'];
+    const getAvatarColor = id => AVATAR_COLORS[Math.abs(parseInt(id) || 0) % AVATAR_COLORS.length];
+</script>
+
+<script>
+    async function load() {
+        if (!userId || !db) { 
+            document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">${ICONS.users}</div><div class="empty-title">Ошибка доступа</div><div class="empty-text">Откройте страницу через Telegram бота</div></div>`; 
+            document.getElementById('loader').classList.add('hidden'); 
+            return; 
+        }
+        
+        const [refsRes, userRes, refProfitsRes] = await Promise.all([
+            db.from('users').select('id, username, full_name, created_at, status').eq('referrer_id', userId).order('created_at', {ascending: false}),
+            db.from('users').select('referral_earnings, full_name').eq('id', userId).single(),
+            db.from('referral_profits').select('*').eq('referrer_id', userId)
+        ]);
+        
+        document.getElementById('loader').classList.add('hidden');
+        
+        const referrals = refsRes.data || [];
+        const userData = userRes.data;
+        const refProfits = refProfitsRes.data || [];
+        
+        const totalEarnings = parseFloat(userData?.referral_earnings || 0);
+        const activeRefs = referrals.filter(r => r.status === 'active');
+        
+        // Calculate earnings per referral
+        const earningsMap = {};
+        refProfits.forEach(rp => {
+            earningsMap[rp.referral_id] = (earningsMap[rp.referral_id] || 0) + parseFloat(rp.amount);
+        });
+        
+        // Header
+        const avatarHtml = userPhoto ? `<img src="${userPhoto}" alt="">` : ICONS.link;
+        document.getElementById('header').innerHTML = `
+            <div class="header-avatar">${avatarHtml}</div>
+            <div class="header-info">
+                <div class="header-title">${userData?.full_name || userName}</div>
+                <div class="header-sub">
+                    <span>Реферальная программа</span>
+                    <span class="header-badge">${REF_PERCENT}%</span>
+                </div>
+            </div>
+        `;
+        
+        // Stats Card
+        document.getElementById('statsCard').innerHTML = `
+            <div class="stats-label">${ICONS.wallet} Заработано с рефералов</div>
+            <div class="stats-amount">${fmt(totalEarnings)}</div>
+            <div class="stats-row">
+                <div class="stats-item">
+                    <div class="stats-item-val">${referrals.length}</div>
+                    <div class="stats-item-lbl">Рефералов</div>
+                </div>
+                <div class="stats-item">
+                    <div class="stats-item-val">${activeRefs.length}</div>
+                    <div class="stats-item-lbl">Активных</div>
+                </div>
+                <div class="stats-item">
+                    <div class="stats-item-val">${REF_PERCENT}%</div>
+                    <div class="stats-item-lbl">Ваш %</div>
+                </div>
+            </div>
+        `;
+        
+        // Info Card
+        document.getElementById('infoCard').innerHTML = `
+            <div class="info-icon">${ICONS.gift}</div>
+            <div class="info-content">
+                <div class="info-title">Как это работает?</div>
+                <div class="info-text">Приглашайте друзей по реферальной ссылке и получайте ${REF_PERCENT}% от каждого их профита автоматически</div>
+            </div>
+        `;
+        
+        // Quick Stats
+        const avgEarning = referrals.length > 0 ? totalEarnings / referrals.length : 0;
+        const topEarner = Object.values(earningsMap).length > 0 ? Math.max(...Object.values(earningsMap)) : 0;
+        
+        document.getElementById('quickStats').innerHTML = `
+            <div class="quick-stat">
+                <div class="quick-stat-icon green">${ICONS.trending}</div>
+                <div class="quick-stat-val">${fmt(avgEarning)}</div>
+                <div class="quick-stat-lbl">Средний доход</div>
+            </div>
+            <div class="quick-stat">
+                <div class="quick-stat-icon orange">${ICONS.wallet}</div>
+                <div class="quick-stat-val">${fmt(topEarner)}</div>
+                <div class="quick-stat-lbl">Топ реферал</div>
+            </div>
+            <div class="quick-stat">
+                <div class="quick-stat-icon pink">${ICONS.users}</div>
+                <div class="quick-stat-val">${refProfits.length}</div>
+                <div class="quick-stat-lbl">Начислений</div>
+            </div>
+        `;
+        
+        if (!referrals.length) {
+            document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-icon">${ICONS.users}</div><div class="empty-title">Пока пусто</div><div class="empty-text">Приглашайте друзей и зарабатывайте вместе с ними</div></div>`;
+            return;
+        }
+        
+        const refsWithEarnings = referrals.map(r => ({...r, earnings: earningsMap[r.id] || 0}));
+        
+        document.getElementById('content').innerHTML = `<div class="list">${refsWithEarnings.map(r => {
+            const name = r.full_name || 'Пользователь';
+            const initials = getInitials(name);
+            const avatarBg = getAvatarColor(r.id);
+            const isActive = r.status === 'active';
+            return `
+            <div class="list-item" onclick='showDetail(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+                <div class="avatar" style="background: linear-gradient(135deg, ${avatarBg}, ${avatarBg}dd)">${initials}</div>
+                <div class="item-content">
+                    <div class="item-title">${name}</div>
+                    <div class="item-sub">${r.username ? '@' + r.username : fmtDate(r.created_at)}</div>
+                </div>
+                <div class="item-right">
+                    <div class="item-amount">+${fmt(r.earnings)}</div>
+                    <div class="item-badge ${isActive ? 'active' : 'pending'}">${isActive ? '● Активен' : '○ Ожидает'}</div>
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+    }
+    
+    function showDetail(r) {
+        const name = r.full_name || 'Пользователь';
+        const initials = getInitials(name);
+        const avatarBg = getAvatarColor(r.id);
+        const isActive = r.status === 'active';
+        
+        document.getElementById('modalBody').innerHTML = `
+            <div class="detail-header">
+                <div class="detail-avatar" style="background: linear-gradient(135deg, ${avatarBg}, ${avatarBg}dd)">${initials}</div>
+                <div class="detail-name">${name}</div>
+                ${r.username ? `<div class="detail-username">@${r.username}</div>` : ''}
+                <div class="detail-amount">+${fmt(r.earnings)}</div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-row"><span class="detail-label">${ICONS.user} Имя</span><span class="detail-value">${name}</span></div>
+                <div class="detail-row"><span class="detail-label">${ICONS.at} Username</span><span class="detail-value">${r.username ? '@' + r.username : '—'}</span></div>
+                <div class="detail-row"><span class="detail-label">${isActive ? ICONS.check : ICONS.clock} Статус</span><span class="detail-value">${isActive ? '🟢 Активен' : '⚪ Ожидает'}</span></div>
+                <div class="detail-row"><span class="detail-label">${ICONS.percent} Ваш процент</span><span class="detail-value">${REF_PERCENT}%</span></div>
+                <div class="detail-row"><span class="detail-label">${ICONS.calendar} Регистрация</span><span class="detail-value">${fmtFull(r.created_at)}</span></div>
+            </div>
+        `;
+        document.getElementById('modal').classList.add('active');
+    }
+    
+    document.getElementById('modal').onclick = e => { if(e.target.id === 'modal') document.getElementById('modal').classList.remove('active'); };
+    if(tg?.BackButton) { tg.BackButton.onClick(() => document.getElementById('modal').classList.remove('active')); }
+    
+    load();
+</script>
