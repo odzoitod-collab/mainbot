@@ -1,9 +1,11 @@
 """Admin profit creation handlers."""
 import logging
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+import asyncio
+from aiogram import Router, F, Bot
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
+from aiogram.exceptions import TelegramRetryAfter, TelegramBadRequest
 
 from states.all_states import AdminProfitState
 from keyboards.admin_kb import (
@@ -17,12 +19,85 @@ from database import (
     get_user_referrer, update_referrer_earnings, create_referral_profit,
     create_mentor_profit
 )
-from config import ADMIN_IDS, LOG_CHANNEL_ID, REFERRAL_PERCENT
+from config import ADMIN_IDS, PROFITS_CHANNEL_ID, REFERRAL_PERCENT, BRAND_IMAGE_LOGO, BRAND_IMAGE_PROFIT
 from middlewares.admin import admin_only
 from utils.ranks import get_rank_info, check_rank_up, get_rank_reward_message
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+# Cache for profit image file_id
+_profit_image_cache: str = None
+
+
+async def send_profit_to_channel(
+    bot: Bot,
+    profit_id: int,
+    worker_name: str,
+    worker_username: str,
+    service_name: str,
+    amount: float,
+    net_profit: float,
+    percent: int
+) -> bool:
+    """Send profit notification to channel with retry logic."""
+    global _profit_image_cache
+    
+    caption = (
+        f"💎 <b>НОВЫЙ ПРОФИТ #{profit_id}</b>\n\n"
+        f"👤 Воркер: {worker_name} (@{worker_username})\n"
+        f"🛠 Сервис: {service_name}\n"
+        f"💰 Сумма: {amount:.2f} RUB\n"
+        f"📊 Доля ({percent}%): {net_profit:.2f} RUB"
+    )
+    
+    for attempt in range(3):
+        try:
+            # Use cached file_id if available
+            if _profit_image_cache:
+                await bot.send_photo(
+                    chat_id=PROFITS_CHANNEL_ID,
+                    photo=_profit_image_cache,
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+            else:
+                # First time - upload and cache
+                photo = FSInputFile(BRAND_IMAGE_PROFIT)
+                sent = await bot.send_photo(
+                    chat_id=PROFITS_CHANNEL_ID,
+                    photo=photo,
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+                if sent.photo:
+                    _profit_image_cache = sent.photo[-1].file_id
+            
+            logger.info(f"Profit #{profit_id} sent to channel")
+            return True
+            
+        except TelegramRetryAfter as e:
+            logger.warning(f"Rate limited, waiting {e.retry_after}s")
+            await asyncio.sleep(e.retry_after)
+            continue
+            
+        except TelegramBadRequest as e:
+            if "chat not found" in str(e).lower():
+                logger.error(f"Channel {PROFITS_CHANNEL_ID} not found! Check bot is admin in channel.")
+            elif "not enough rights" in str(e).lower():
+                logger.error(f"Bot has no rights to post in channel {PROFITS_CHANNEL_ID}")
+            else:
+                logger.error(f"Telegram error: {e}")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Send to channel failed (attempt {attempt + 1}): {e}")
+            if attempt < 2:
+                await asyncio.sleep(1)
+                continue
+            return False
+    
+    return False
 
 
 @router.message(Command("admin"))
@@ -263,12 +338,11 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     # Notify worker
     try:
         from aiogram.types import FSInputFile
-        from config import BRAND_IMAGE_PROFITS
         
         bonus_text = f"\n🏆 Бонус: +{bonus:.2f} RUB" if bonus > 0 else ""
         mentor_text = f"\n👨‍🏫 Наставник: -{mentor_cut:.2f} RUB" if mentor_cut > 0 else ""
         
-        photo = FSInputFile(BRAND_IMAGE_PROFITS)
+        photo = FSInputFile(BRAND_IMAGE_PROFIT)
         await callback.bot.send_photo(
             data["worker_id"], photo=photo,
             caption=(
@@ -286,9 +360,8 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     if mentor and mentor_cut > 0:
         try:
             from aiogram.types import FSInputFile
-            from config import BRAND_IMAGE_PROFITS
             
-            photo = FSInputFile(BRAND_IMAGE_PROFITS)
+            photo = FSInputFile(BRAND_IMAGE_PROFIT)
             await callback.bot.send_photo(
                 mentor['user_id'], photo=photo,
                 caption=(
@@ -304,9 +377,8 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     if referrer and referral_cut > 0:
         try:
             from aiogram.types import FSInputFile
-            from config import BRAND_IMAGE_PROFITS
             
-            photo = FSInputFile(BRAND_IMAGE_PROFITS)
+            photo = FSInputFile(BRAND_IMAGE_PROFIT)
             await callback.bot.send_photo(
                 referrer['id'], photo=photo,
                 caption=(
@@ -318,24 +390,17 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
         except:
             pass
     
-    # Log channel
-    try:
-        from aiogram.types import FSInputFile
-        from config import BRAND_IMAGE_PROFITS
-        
-        photo = FSInputFile(BRAND_IMAGE_PROFITS)
-        await callback.bot.send_photo(
-            LOG_CHANNEL_ID, photo=photo,
-            caption=(
-                f"💎 <b>НОВЫЙ ПРОФИТ</b>\n\n"
-                f"Воркер: {data['worker_name']} (@{data['worker_username']})\n"
-                f"Сервис: {data['service_name']}\n"
-                f"Всего: {amount:.2f} RUB\n"
-                f"Доля воркера ({percent}%): {net_profit:.2f} RUB"
-            )
-        )
-    except Exception as e:
-        logger.error(f"Log channel failed: {e}")
+    # Send to profits channel
+    await send_profit_to_channel(
+        callback.bot,
+        profit_id=profit_id,
+        worker_name=data['worker_name'],
+        worker_username=data['worker_username'],
+        service_name=data['service_name'],
+        amount=amount,
+        net_profit=net_profit,
+        percent=percent
+    )
     
     from utils.messages import edit_with_brand
     await edit_with_brand(callback, f"✅ <b>ПРОФИТ #{profit_id} СОЗДАН!</b>", reply_markup=get_back_to_admin_keyboard())

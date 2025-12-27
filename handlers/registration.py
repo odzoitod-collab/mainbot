@@ -17,7 +17,7 @@ from keyboards.registration import (
     get_join_team_keyboard
 )
 from database import get_user, create_user, update_user_status
-from config import APPLICATION_CHANNEL_ID
+from config import APPLICATIONS_CHANNEL_ID
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -67,7 +67,7 @@ async def start_registration(message: Message, state: FSMContext, referrer_id: i
     
     from utils.design import header
     from utils.messages import answer_with_brand
-    from config import BRAND_IMAGE_HELLO
+    from config import BRAND_IMAGE_WELCOME
     
     text = f"{header('ДОБРО ПОЖАЛОВАТЬ!', '🔷')}\n\n"
     text += "🔷 <b>СОГЛАШЕНИЕ</b>\n"
@@ -77,7 +77,7 @@ async def start_registration(message: Message, state: FSMContext, referrer_id: i
     text += "  ✅ Уважать участников команды\n\n"
     text += "❓ Вы принимаете условия?"
     
-    await answer_with_brand(message, text, reply_markup=get_agreement_keyboard(), image_path=BRAND_IMAGE_HELLO)
+    await answer_with_brand(message, text, reply_markup=get_agreement_keyboard(), image_path=BRAND_IMAGE_WELCOME)
 
 
 @router.callback_query(F.data == "accept_agreement")
@@ -218,7 +218,7 @@ async def receive_source(callback: CallbackQuery, state: FSMContext) -> None:
     
     try:
         await callback.bot.send_message(
-            APPLICATION_CHANNEL_ID, channel_text,
+            APPLICATIONS_CHANNEL_ID, channel_text,
             reply_markup=get_admin_decision_keyboard(user_id)
         )
     except Exception as e:

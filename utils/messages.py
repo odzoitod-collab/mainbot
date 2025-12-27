@@ -1,17 +1,16 @@
-"""Optimized message utilities for sending messages with brand image."""
+"""Optimized message utilities - edit caption instead of sending new photos."""
 import logging
-import asyncio
 from typing import Optional, Union, Dict
 from contextlib import suppress
 
-from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup, InputMediaPhoto
 from aiogram.exceptions import TelegramBadRequest
 
-from config import BRAND_IMAGE_HOME
+from config import BRAND_IMAGE_LOGO
 
 logger = logging.getLogger(__name__)
 
-# Global cache for uploaded file IDs (persists across requests)
+# Global cache for uploaded file IDs
 _image_cache: Dict[str, str] = {}
 
 
@@ -22,7 +21,7 @@ async def send_with_brand(
     parse_mode: str = "HTML",
     image_path: Optional[str] = None
 ) -> Optional[Message]:
-    """Send message with brand image (optimized with file_id caching)."""
+    """Send message with brand image (first time only)."""
     try:
         if isinstance(target, CallbackQuery):
             bot = target.bot
@@ -31,9 +30,9 @@ async def send_with_brand(
             bot = target.bot
             chat_id = target.chat.id
         
-        img_path = image_path or BRAND_IMAGE_HOME
+        img_path = image_path or BRAND_IMAGE_LOGO
         
-        # Use cached file_id if available (much faster)
+        # Use cached file_id if available
         if img_path in _image_cache:
             return await bot.send_photo(
                 chat_id=chat_id,
@@ -60,7 +59,6 @@ async def send_with_brand(
         
     except Exception as e:
         logger.error(f"send_with_brand failed: {e}")
-        # Fallback to text
         with suppress(Exception):
             if isinstance(target, CallbackQuery):
                 return await target.message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
@@ -72,15 +70,14 @@ async def edit_with_brand(
     callback: CallbackQuery,
     text: str,
     reply_markup: Optional[InlineKeyboardMarkup] = None,
-    parse_mode: str = "HTML",
-    image_path: Optional[str] = None
+    parse_mode: str = "HTML"
 ) -> bool:
-    """Edit message caption or replace with new image (optimized)."""
+    """Edit caption only - no new photos, just text change."""
     try:
         msg = callback.message
         
-        # If message has photo and we want same/no image - just edit caption
-        if msg.photo and not image_path:
+        # If message has photo - edit caption only
+        if msg.photo:
             try:
                 await msg.edit_caption(
                     caption=text,
@@ -93,20 +90,31 @@ async def edit_with_brand(
                     return True
                 raise
         
-        # Need to change image or add image - delete and send new
+        # Text message - edit text
+        if msg.text:
+            try:
+                await msg.edit_text(
+                    text=text,
+                    reply_markup=reply_markup,
+                    parse_mode=parse_mode
+                )
+                return True
+            except TelegramBadRequest as e:
+                if "message is not modified" in str(e):
+                    return True
+                raise
+        
+        # Fallback - delete and send new
         with suppress(Exception):
             await msg.delete()
-        
-        await send_with_brand(callback, text, reply_markup, parse_mode, image_path)
+        await send_with_brand(callback, text, reply_markup, parse_mode)
         return True
         
     except Exception as e:
         logger.error(f"edit_with_brand failed: {e}")
-        # Last resort fallback
         with suppress(Exception):
             await callback.message.delete()
-            await send_with_brand(callback, text, reply_markup, parse_mode, image_path)
-            return True
+            await send_with_brand(callback, text, reply_markup, parse_mode)
         return False
 
 
@@ -117,15 +125,15 @@ async def answer_with_brand(
     parse_mode: str = "HTML",
     image_path: Optional[str] = None
 ) -> Optional[Message]:
-    """Answer to message with brand image."""
+    """Answer with brand image."""
     return await send_with_brand(message, text, reply_markup, parse_mode, image_path)
 
 
 def get_cached_file_id(image_path: str) -> Optional[str]:
-    """Get cached file_id for image path."""
+    """Get cached file_id."""
     return _image_cache.get(image_path)
 
 
 def set_cached_file_id(image_path: str, file_id: str) -> None:
-    """Manually set cached file_id."""
+    """Set cached file_id."""
     _image_cache[image_path] = file_id

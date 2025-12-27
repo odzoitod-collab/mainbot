@@ -23,10 +23,7 @@ from database import (
 )
 from utils.messages import answer_with_brand, edit_with_brand
 from utils.design import header, profit_card
-from config import (
-    ADMIN_IDS, BRAND_IMAGE_HOME, BRAND_IMAGE_PROFILE, BRAND_IMAGE_PROFITS,
-    BRAND_IMAGE_SERVICES, BRAND_IMAGE_INFO, BRAND_IMAGE_REFERRAL, BRAND_IMAGE_CARDS
-)
+from config import ADMIN_IDS, BRAND_IMAGE_LOGO
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -126,9 +123,9 @@ async def show_main_menu(event: TelegramObject, db_user: dict = None) -> None:
     kb = get_main_menu_keyboard(0, is_admin)
     
     if isinstance(event, CallbackQuery):
-        await edit_with_brand(event, text, reply_markup=kb, image_path=BRAND_IMAGE_HOME)
+        await edit_with_brand(event, text, reply_markup=kb)
     else:
-        await answer_with_brand(event, text, reply_markup=kb, image_path=BRAND_IMAGE_HOME)
+        await answer_with_brand(event, text, reply_markup=kb, image_path=BRAND_IMAGE_LOGO)
 
 
 @router.callback_query(F.data == "main_menu")
@@ -149,7 +146,7 @@ async def show_profile(callback: CallbackQuery) -> None:
         return
     
     text = _build_profile_text(data["user"], data["stats"], data["position"], data["mentor"])
-    await edit_with_brand(callback, text, reply_markup=get_profile_keyboard(), image_path=BRAND_IMAGE_PROFILE)
+    await edit_with_brand(callback, text, reply_markup=get_profile_keyboard())
 
 
 @router.callback_query(F.data == "referral_link")
@@ -169,7 +166,7 @@ async def show_referral_link(callback: CallbackQuery) -> None:
         f"🔗 <b>Твоя ссылка:</b>\n<code>{ref_link}</code>"
     )
     
-    await edit_with_brand(callback, text, reply_markup=get_referral_keyboard(ref_link, WEBSITE_URL), image_path=BRAND_IMAGE_REFERRAL)
+    await edit_with_brand(callback, text, reply_markup=get_referral_keyboard(ref_link, WEBSITE_URL))
 
 
 @router.callback_query(F.data == "profit_history")
@@ -178,7 +175,7 @@ async def show_profit_history(callback: CallbackQuery) -> None:
     
     profits = await get_user_profits(callback.from_user.id)
     text, total_pages = _build_profit_history(profits, 0)
-    await edit_with_brand(callback, text, reply_markup=get_profit_history_keyboard(0, total_pages), image_path=BRAND_IMAGE_PROFITS)
+    await edit_with_brand(callback, text, reply_markup=get_profit_history_keyboard(0, total_pages))
 
 
 @router.callback_query(F.data.startswith("profit_page_"))
@@ -192,7 +189,7 @@ async def paginate_profits(callback: CallbackQuery) -> None:
     
     profits = await get_user_profits(callback.from_user.id)
     text, total_pages = _build_profit_history(profits, page)
-    await edit_with_brand(callback, text, reply_markup=get_profit_history_keyboard(page, total_pages), image_path=BRAND_IMAGE_PROFITS)
+    await edit_with_brand(callback, text, reply_markup=get_profit_history_keyboard(page, total_pages))
 
 
 @router.callback_query(F.data == "services")
@@ -201,7 +198,7 @@ async def show_services(callback: CallbackQuery) -> None:
     
     services = await get_services()
     text = header("Сервисы", "🛠")
-    await edit_with_brand(callback, text, reply_markup=get_services_keyboard(services), image_path=BRAND_IMAGE_SERVICES)
+    await edit_with_brand(callback, text, reply_markup=get_services_keyboard(services))
 
 
 @router.callback_query(F.data.startswith("service_"))
@@ -225,8 +222,7 @@ async def show_service_detail(callback: CallbackQuery) -> None:
     
     await edit_with_brand(
         callback, text,
-        reply_markup=get_service_detail_keyboard(service_id, service.get("manual_link"), service.get("bot_link")),
-        image_path=BRAND_IMAGE_SERVICES
+        reply_markup=get_service_detail_keyboard(service_id, service.get("manual_link"), service.get("bot_link"))
     )
 
 
@@ -236,7 +232,7 @@ async def show_community(callback: CallbackQuery) -> None:
     
     resources = await get_resources()
     text = header("Материалы", "📚")
-    await edit_with_brand(callback, text, reply_markup=get_resources_keyboard(resources), image_path=BRAND_IMAGE_INFO)
+    await edit_with_brand(callback, text, reply_markup=get_resources_keyboard(resources))
 
 
 @router.callback_query(F.data == "choose_mentor")
@@ -247,10 +243,10 @@ async def show_mentors(callback: CallbackQuery) -> None:
     text = header("Наставники", "👨‍🏫")
     
     if not services:
-        await edit_with_brand(callback, text + "\n\nПока нет наставников.", reply_markup=get_back_to_menu_keyboard("mentors"), image_path=BRAND_IMAGE_INFO)
+        await edit_with_brand(callback, text + "\n\nПока нет наставников.", reply_markup=get_back_to_menu_keyboard("mentors"))
         return
     
-    await edit_with_brand(callback, text, reply_markup=get_mentor_services_keyboard(services), image_path=BRAND_IMAGE_INFO)
+    await edit_with_brand(callback, text, reply_markup=get_mentor_services_keyboard(services))
 
 
 @router.callback_query(F.data.startswith("mentor_service_"))
@@ -265,7 +261,7 @@ async def show_mentors_by_service(callback: CallbackQuery) -> None:
         return
     
     text = f"👨‍🏫 <b>Наставники: {service_name}</b>"
-    await edit_with_brand(callback, text, reply_markup=get_mentor_selection_keyboard(mentors, service_name), image_path=BRAND_IMAGE_INFO)
+    await edit_with_brand(callback, text, reply_markup=get_mentor_selection_keyboard(mentors, service_name))
 
 
 @router.callback_query(F.data.startswith("select_mentor_"))
@@ -302,7 +298,7 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
     if current and current.get("id") != mentor_id:
         text += "\n\n⚠️ У вас уже есть наставник."
     
-    await edit_with_brand(callback, text, reply_markup=get_mentor_detail_keyboard(mentor_id, has_mentor, mentor['service_name']), image_path=BRAND_IMAGE_INFO)
+    await edit_with_brand(callback, text, reply_markup=get_mentor_detail_keyboard(mentor_id, has_mentor, mentor['service_name']))
 
 
 @router.callback_query(F.data.startswith("confirm_mentor_"))
@@ -354,7 +350,7 @@ async def show_direct_payments(callback: CallbackQuery) -> None:
     
     text += "<i>Нажмите на реквизиты чтобы скопировать.</i>"
     
-    await edit_with_brand(callback, text, reply_markup=get_direct_payments_keyboard(settings['support_username']), image_path=BRAND_IMAGE_CARDS)
+    await edit_with_brand(callback, text, reply_markup=get_direct_payments_keyboard(settings['support_username']))
 
 
 @router.callback_query(F.data == "none")

@@ -8,7 +8,7 @@ from database import (
     get_user, get_user_stats, get_top_workers, get_user_position,
     get_direct_payment_settings, get_active_user_ids
 )
-from config import ADMIN_IDS, BRAND_IMAGE_PROFILE, BRAND_IMAGE_TOP, BRAND_IMAGE_CARDS
+from config import ADMIN_IDS, BRAND_IMAGE_LOGO
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -53,7 +53,7 @@ async def cmd_me(message: Message) -> None:
     ])
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_PROFILE)
+        photo = FSInputFile(BRAND_IMAGE_LOGO)
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
@@ -73,7 +73,7 @@ async def cmd_card(message: Message) -> None:
     text += f"📸 Скрин: @{settings['support_username']}"
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_CARDS)
+        photo = FSInputFile(BRAND_IMAGE_LOGO)
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
@@ -115,7 +115,7 @@ async def _show_top(message: Message, period: str, title: str) -> None:
         text += f"{medal} <b>{name}</b>\n   💰 {w['total_profit']:.2f} RUB • {w['profit_count']} шт\n"
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_TOP)
+        photo = FSInputFile(BRAND_IMAGE_LOGO)
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
