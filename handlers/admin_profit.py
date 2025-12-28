@@ -44,13 +44,13 @@ async def send_profit_to_channel(
     global _profit_image_cache
     
     caption = (
-        f"```\n"
-        f"📥 НОВЫЙ :ПРОФИТ #{profit_id}\n\n"
-        f"┣ Воркер:: {worker_name} (@{worker_username})\n"
-        f"┣ Серваис: {service_name}\n"
-        f"┣ Сумма: {amount:.2f} RUB\n"
-        f"┣ Доля ({percent}%): {net_profit:.2f} RUB\n"
-        f"```"
+        f"<pre>"
+        f"💎 НОВЫЙ ПРОФИТ #{profit_id}\n\n"
+        f"╰• Воркер: {worker_name} (@{worker_username})\n"
+        f"╰• Сервис: {service_name}\n"
+        f"╰• Сумма: {amount:.2f} RUB\n"
+        f"╰• Доля ({percent}%): {net_profit:.2f} RUB"
+        f"</pre>"
     )
     
     for attempt in range(3):
@@ -61,7 +61,7 @@ async def send_profit_to_channel(
                     chat_id=PROFITS_CHANNEL_ID,
                     photo=_profit_image_cache,
                     caption=caption,
-                    parse_mode="Markdown"
+                    parse_mode="HTML"
                 )
             else:
                 # First time - upload and cache
@@ -70,7 +70,7 @@ async def send_profit_to_channel(
                     chat_id=PROFITS_CHANNEL_ID,
                     photo=photo,
                     caption=caption,
-                    parse_mode="Markdown"
+                    parse_mode="HTML"
                 )
                 if sent.photo:
                     _profit_image_cache = sent.photo[-1].file_id
