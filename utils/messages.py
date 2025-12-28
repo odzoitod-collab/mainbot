@@ -1,4 +1,4 @@
-"""Optimized message utilities - edit caption instead of sending new photos."""
+"""Optimized message utilities - always show brand image."""
 import logging
 from typing import Optional, Union, Dict
 from contextlib import suppress
@@ -21,7 +21,7 @@ async def send_with_brand(
     parse_mode: str = "HTML",
     image_path: Optional[str] = None
 ) -> Optional[Message]:
-    """Send message with brand image (first time only)."""
+    """Send message with brand image."""
     try:
         if isinstance(target, CallbackQuery):
             bot = target.bot
@@ -32,7 +32,7 @@ async def send_with_brand(
         
         img_path = image_path or BRAND_IMAGE_LOGO
         
-        # Use cached file_id if available
+        # Use cached file_id if available (faster)
         if img_path in _image_cache:
             return await bot.send_photo(
                 chat_id=chat_id,
@@ -52,13 +52,14 @@ async def send_with_brand(
             parse_mode=parse_mode
         )
         
-        if sent.photo:
+        if sent and sent.photo:
             _image_cache[img_path] = sent.photo[-1].file_id
         
         return sent
         
     except Exception as e:
         logger.error(f"send_with_brand failed: {e}")
+        # Fallback to text only
         with suppress(Exception):
             if isinstance(target, CallbackQuery):
                 return await target.message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
@@ -72,11 +73,11 @@ async def edit_with_brand(
     reply_markup: Optional[InlineKeyboardMarkup] = None,
     parse_mode: str = "HTML"
 ) -> bool:
-    """Edit caption only - no new photos, just text change."""
+    """Edit message - keep photo if exists, or send new with photo."""
     try:
         msg = callback.message
         
-        # If message has photo - edit caption only
+        # Message has photo - just edit caption
         if msg.photo:
             try:
                 await msg.edit_caption(
@@ -90,30 +91,19 @@ async def edit_with_brand(
                     return True
                 raise
         
-        # Text message - edit text
-        if msg.text:
-            try:
-                await msg.edit_text(
-                    text=text,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-                return True
-            except TelegramBadRequest as e:
-                if "message is not modified" in str(e):
-                    return True
-                raise
-        
-        # Fallback - delete and send new
+        # No photo - delete old message and send new with photo
         with suppress(Exception):
             await msg.delete()
+        
         await send_with_brand(callback, text, reply_markup, parse_mode)
         return True
         
     except Exception as e:
         logger.error(f"edit_with_brand failed: {e}")
+        # Last resort - try to send new message
         with suppress(Exception):
             await callback.message.delete()
+        with suppress(Exception):
             await send_with_brand(callback, text, reply_markup, parse_mode)
         return False
 
