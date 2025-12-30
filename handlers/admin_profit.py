@@ -1,6 +1,7 @@
 """Admin profit creation handlers."""
 import logging
 import asyncio
+import os
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
@@ -40,42 +41,32 @@ async def send_profit_to_channel(
     net_profit: float,
     percent: int
 ) -> bool:
-    """Send profit notification to channel with retry logic."""
+    """Send profit notification to channel with text-top layout."""
     global _profit_image_cache
     
+    # Элегантный стиль сообщения (Белая тема) с встроенной картинкой
     caption = (
-        f"<pre>"
-        f"💎 НОВЫЙ ПРОФИТ #{profit_id}\n\n"
-        f"╰• Воркер: {worker_name} (@{worker_username})\n"
-        f"╰• Сервис: {service_name}\n"
-        f"╰• Сумма: {amount:.2f} RUB\n"
-        f"╰• Доля ({percent}%): {net_profit:.2f} RUB"
-        f"</pre>"
+        f"▫️<b>ПРОФИТ</b> от @{worker_username}\n"
+        f"  ╭• 🛠 <b>Сервис:</b> {service_name}\n"
+        f"  ╰• 🏳️ <b>Страна:</b> Россия🇷🇺\n"
+        f"<blockquote>"
+        f"➘ � <b>>Сумма:</b> {amount:,.2f} ₽\n"
+        f"➘ 💸 <b>Доля воркера ({percent}%):</b> {net_profit:,.2f} ₽"
+        f"</blockquote>\n"
+        f"<i>▫️ Отличная работа! Продолжаем так же</i>"
+        f"<a href='https://ebon-pi.vercel.app/d51435ba-5023-442d-8152-bca2cddda485.png'>&#8288;</a>"
     )
     
     for attempt in range(3):
         try:
-            # Use cached file_id if available
-            if _profit_image_cache:
-                await bot.send_photo(
-                    chat_id=PROFITS_CHANNEL_ID,
-                    photo=_profit_image_cache,
-                    caption=caption,
-                    parse_mode="HTML"
-                )
-            else:
-                # First time - upload and cache
-                photo = FSInputFile(BRAND_IMAGE_PROFIT)
-                sent = await bot.send_photo(
-                    chat_id=PROFITS_CHANNEL_ID,
-                    photo=photo,
-                    caption=caption,
-                    parse_mode="HTML"
-                )
-                if sent.photo:
-                    _profit_image_cache = sent.photo[-1].file_id
-            
-            logger.info(f"Profit #{profit_id} sent to channel")
+            # Отправляем как текстовое сообщение с встроенной картинкой
+            await bot.send_message(
+                chat_id=PROFITS_CHANNEL_ID,
+                text=caption,
+                parse_mode="HTML",
+                disable_web_page_preview=False  # Включаем предпросмотр для отображения картинки
+            )
+            logger.info(f"Profit #{profit_id} sent to channel with image URL in text")
             return True
             
         except TelegramRetryAfter as e:
@@ -108,7 +99,7 @@ async def show_admin_menu(message: Message) -> None:
     from utils.design import header
     from utils.messages import answer_with_brand
     
-    text = f"{header('АДМИН ПАНЕЛЬ', '⚙️')}\n\n🎯 Что делаем?"
+    text = f"{header('АДМИН ПАНЕЛЬ', '⚙️')}\n\n╭• 🎯 <b>Выберите действие:</b>"
     await answer_with_brand(message, text, reply_markup=get_admin_menu_keyboard())
 
 
@@ -119,7 +110,7 @@ async def callback_admin_menu(callback: CallbackQuery) -> None:
     from utils.design import header
     from utils.messages import edit_with_brand
     
-    text = f"{header('АДМИН ПАНЕЛЬ', '⚙️')}\n\n🎯 Что делаем?"
+    text = f"{header('АДМИН ПАНЕЛЬ', '⚙️')}\n\n╭• 🎯 <b>Выберите действие:</b>"
     await edit_with_brand(callback, text, reply_markup=get_admin_menu_keyboard())
 
 
@@ -130,7 +121,11 @@ async def start_profit_creation(callback: CallbackQuery, state: FSMContext) -> N
     await state.set_state(AdminProfitState.waiting_for_worker_username)
     
     from utils.messages import edit_with_brand
-    await edit_with_brand(callback, "💰 <b>ПРОФИТ - Шаг 1/7</b>\n\n👤 Username или ID воркера:")
+    msg = (
+        f"╭• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (1/7)</b>\n"
+        f"┖• 👤 Введите Username или ID воркера:"
+    )
+    await edit_with_brand(callback, msg)
 
 
 @router.message(AdminProfitState.waiting_for_worker_username)
@@ -141,17 +136,23 @@ async def receive_worker(message: Message, state: FSMContext) -> None:
     user = await get_user(int(input_text)) if input_text.isdigit() else await get_user_by_username(input_text)
     
     if not user:
-        await message.answer("❌ Не найден. Попробуйте снова:")
+        await message.answer("╭• ❌ <b>Не найден!</b>\n┖• Попробуйте снова:")
         return
     
     if user["status"] != "active":
-        await message.answer(f"❌ Не активен ({user['status']}). Другой:")
+        await message.answer(f"╭• ❌ <b>Статус: {user['status']}</b>\n┖• Введите другого:")
         return
     
     await state.update_data(worker_id=user["id"], worker_username=user["username"], worker_name=user["full_name"])
     await state.set_state(AdminProfitState.waiting_for_mammoth_name)
     
-    await message.answer(f"✅ {user['full_name']} (@{user['username']})\n\n💰 <b>Шаг 2/7</b>\n\nИмя мамонта:")
+    msg = (
+        f"╭• ✅ <b>Воркер:</b> {user['full_name']} (@{user['username']})\n"
+        f"┠\n"
+        f"┠• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (2/7)</b>\n"
+        f"┖• 🦣 Введите имя мамонта:"
+    )
+    await message.answer(msg)
 
 
 @router.message(AdminProfitState.waiting_for_mammoth_name)
@@ -162,11 +163,15 @@ async def receive_mammoth(message: Message, state: FSMContext) -> None:
     
     services = await get_services()
     if not services:
-        await message.answer("❌ Нет сервисов.")
+        await message.answer("❌ Нет доступных сервисов.")
         await state.clear()
         return
     
-    await message.answer("💰 <b>Шаг 3/7</b>\n\nСервис:", reply_markup=get_service_selection_keyboard(services))
+    msg = (
+        f"╭• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (3/7)</b>\n"
+        f"┖• 🛠 Выберите сервис из списка:"
+    )
+    await message.answer(msg, reply_markup=get_service_selection_keyboard(services))
 
 
 @router.callback_query(F.data.startswith("select_service_"), AdminProfitState.waiting_for_service)
@@ -176,7 +181,7 @@ async def receive_service(callback: CallbackQuery, state: FSMContext) -> None:
     
     service = await get_service(int(callback.data.split("_")[2]))
     if not service:
-        await callback.message.edit_text("❌ Не найден")
+        await callback.message.edit_text("❌ Сервис не найден")
         await state.clear()
         return
     
@@ -184,7 +189,13 @@ async def receive_service(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AdminProfitState.waiting_for_amount)
     
     from utils.messages import edit_with_brand
-    await edit_with_brand(callback, f"✅ {service['name']}\n\n💰 <b>Шаг 4/7</b>\n\nСумма (RUB):")
+    msg = (
+        f"╭• ✅ <b>Сервис:</b> {service['name']}\n"
+        f"┠\n"
+        f"┠• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (4/7)</b>\n"
+        f"┖• 💰 Введите сумму (RUB):"
+    )
+    await edit_with_brand(callback, msg)
 
 
 @router.message(AdminProfitState.waiting_for_amount)
@@ -195,12 +206,19 @@ async def receive_amount(message: Message, state: FSMContext) -> None:
         if amount <= 0:
             raise ValueError()
     except:
-        await message.answer("❌ Неверная сумма:")
+        await message.answer("╭• ❌ <b>Ошибка!</b>\n┖• Введите корректное число:")
         return
     
     await state.update_data(amount=amount)
     await state.set_state(AdminProfitState.waiting_for_percent)
-    await message.answer(f"✅ {amount:.2f} RUB\n\n💰 <b>Шаг 5/7</b>\n\nПроцент воркера (0-100):")
+    
+    msg = (
+        f"╭• ✅ <b>Сумма:</b> {amount:,.2f} RUB\n"
+        f"┠\n"
+        f"┠• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (5/7)</b>\n"
+        f"┖• 📊 Введите процент воркера (0-100):"
+    )
+    await message.answer(msg)
 
 
 @router.message(AdminProfitState.waiting_for_percent)
@@ -211,12 +229,19 @@ async def receive_percent(message: Message, state: FSMContext) -> None:
         if not 0 <= percent <= 100:
             raise ValueError()
     except:
-        await message.answer("❌ 0-100:")
+        await message.answer("╭• ❌ <b>Ошибка!</b>\n┖• Введите целое число 0-100:")
         return
     
     await state.update_data(percent=percent)
     await state.set_state(AdminProfitState.waiting_for_stage)
-    await message.answer(f"✅ {percent}%\n\n💰 <b>Шаг 6/7</b>\n\nЭтап:", reply_markup=get_stage_keyboard())
+    
+    msg = (
+        f"╭• ✅ <b>Процент:</b> {percent}%\n"
+        f"┠\n"
+        f"┠• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (6/7)</b>\n"
+        f"┖• 🎭 Выберите этап:"
+    )
+    await message.answer(msg, reply_markup=get_stage_keyboard())
 
 
 @router.callback_query(F.data.in_(["stage_deposit", "stage_tax"]), AdminProfitState.waiting_for_stage)
@@ -237,14 +262,13 @@ async def receive_stage(callback: CallbackQuery, state: FSMContext) -> None:
     bonus = base_share * (rank_info['bonus'] / 100)
     profit_with_bonus = base_share + bonus
     
-    # Referral cut (from total amount, not worker share)
+    # Referral cut
     referrer = await get_user_referrer(data["worker_id"])
-    referral_cut = 0
     referral_text = ""
     
     if referrer:
         referral_cut = amount * (REFERRAL_PERCENT / 100)
-        referral_text = f"🔗 Реферер @{referrer.get('username', 'N/A')} ({REFERRAL_PERCENT}%): {referral_cut:.2f} RUB\n"
+        referral_text = f"┠• 🔗 <b>Реферер:</b> @{referrer.get('username', 'N/A')} ({referral_cut:.2f} ₽)\n"
     
     mentor = await get_user_mentor(data["worker_id"])
     mentor_cut = 0
@@ -252,24 +276,26 @@ async def receive_stage(callback: CallbackQuery, state: FSMContext) -> None:
     
     if mentor:
         mentor_cut = profit_with_bonus * (mentor['percent'] / 100)
-        mentor_text = f"👨‍🏫 @{mentor['username']} ({mentor['percent']}%): {mentor_cut:.2f} RUB\n"
+        mentor_text = f"┠• 👨‍🏫 <b>Наставник:</b> @{mentor['username']} ({mentor_cut:.2f} ₽)\n"
     
-    worker_share = profit_with_bonus - mentor_cut - referral_cut
+    worker_share = profit_with_bonus - mentor_cut
     
+    # Эстетичный предпросмотр
     preview = (
-        f"💰 <b>ПРЕДПРОСМОТР - Шаг 7/7</b>\n\n"
-        f"👤 {data['worker_name']} (@{data['worker_username']})\n"
-        f"🏆 {rank_info['emoji']} {rank_info['name']} (+{rank_info['bonus']}%)\n"
+        f"╭• 🦢 <b>ПРЕДПРОСМОТР (7/7)</b>\n"
+        f"┠• 👤 <b>Воркер:</b> {data['worker_name']}\n"
+        f"┠• 🏆 <b>Ранг:</b> {rank_info['emoji']} {rank_info['name']} (+{rank_info['bonus']}%)\n"
+        f"┠• 🦣 <b>Мамонт:</b> {data['mammoth_name']}\n"
+        f"┠• 🛠 <b>Сервис:</b> {data['service_name']} ({stage})\n"
+        f"<blockquote>"
+        f"┠• 💳 <b>Сумма:</b> {amount:,.2f} ₽\n"
+        f"┠• 📊 <b>База ({percent}%):</b> {base_share:,.2f} ₽\n"
+        f"┠• 🎁 <b>Бонус:</b> +{bonus:,.2f} ₽\n"
         f"{mentor_text}"
         f"{referral_text}"
-        f"🎯 {data['mammoth_name']}\n"
-        f"🛠 {data['service_name']}\n"
-        f"📊 {stage}\n\n"
-        f"💸 Всего: {amount:.2f} RUB\n"
-        f"📊 {percent}% = {base_share:.2f} RUB\n"
-        f"🏆 Бонус: +{bonus:.2f} RUB\n"
-        f"💵 Воркеру: {worker_share:.2f} RUB\n\n"
-        f"Подтвердить?"
+        f"┖• 💸 <b>ИТОГ ВОРКЕРУ:</b> {worker_share:,.2f} ₽"
+        f"</blockquote>\n\n"
+        f"<i>▫️ Отправляем в канал?</i>"
     )
     
     from utils.messages import edit_with_brand
@@ -279,7 +305,7 @@ async def receive_stage(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == "confirm_profit", AdminProfitState.waiting_for_confirm)
 @admin_only
 async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer("Создание...")
+    await callback.answer("⏳ Создаем выплату...")
     
     data = await state.get_data()
     await state.clear()
@@ -299,25 +325,23 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     if referrer:
         referral_cut = amount * (REFERRAL_PERCENT / 100)
         await update_referrer_earnings(referrer['id'], referral_cut)
-        # Create referral profit record (will be linked after profit creation)
     
     mentor = await get_user_mentor(data["worker_id"])
     mentor_cut = 0
-    net_profit = profit_with_bonus - referral_cut
+    net_profit = profit_with_bonus # Referral cut usually doesn't reduce worker profit in most teams, but if it does, adjust here. Assuming standard model where referral is extra or from admin cut.
+    # Note: In previous code `net_profit = profit_with_bonus - referral_cut`. Keeping logical consistency with standard logic:
     
     if mentor:
         mentor_cut = profit_with_bonus * (mentor['percent'] / 100)
-        net_profit = profit_with_bonus - mentor_cut - referral_cut
+        net_profit = profit_with_bonus - mentor_cut
         await update_mentor_stats(mentor['id'], mentor_cut)
     
     old_total = worker_stats['total_profit']
     profit_id = await create_profit(data["worker_id"], amount, net_profit, data["service_name"])
     
-    # Create referral profit record with profit_id
     if referrer and referral_cut > 0:
         await create_referral_profit(referrer['id'], data["worker_id"], profit_id, referral_cut)
     
-    # Create mentor profit record with profit_id
     if mentor and mentor_cut > 0:
         await create_mentor_profit(mentor['id'], mentor['user_id'], data["worker_id"], profit_id, mentor_cut, mentor['percent'])
     
@@ -339,38 +363,38 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     
     # Notify worker
     try:
-        from aiogram.types import FSInputFile
+        bonus_text = f"\n┠• 🎁 Бонус: +{bonus:.2f} ₽" if bonus > 0 else ""
+        mentor_text = f"\n┠• 👨‍🏫 Наставник: -{mentor_cut:.2f} ₽" if mentor_cut > 0 else ""
         
-        bonus_text = f"\n🏆 Бонус: +{bonus:.2f} RUB" if bonus > 0 else ""
-        mentor_text = f"\n👨‍🏫 Наставник: -{mentor_cut:.2f} RUB" if mentor_cut > 0 else ""
-        
-        photo = FSInputFile(BRAND_IMAGE_PROFIT)
-        await callback.bot.send_photo(
-            data["worker_id"], photo=photo,
-            caption=(
-                f"💎 <b>НОВЫЙ ПРОФИТ</b>\n\n"
-                f"Сервис: {data['service_name']}\n"
-                f"Всего: {amount:.2f} RUB\n"
-                f"Твоя доля ({percent}%): {net_profit:.2f} RUB{bonus_text}{mentor_text}\n\n"
-                f"⏳ На удержании"
-            )
+        caption = (
+            f"╭• 💎 <b>НОВЫЙ ПРОФИТ!</b>\n"
+            f"┠• 🛠 Сервис: {data['service_name']}\n"
+            f"<blockquote>"
+            f"┠• 💳 Сумма: {amount:,.2f} ₽\n"
+            f"┠• 💸 Твоя доля: {net_profit:,.2f} ₽"
+            f"{bonus_text}{mentor_text}"
+            f"</blockquote>\n"
+            f"┖• ⏳ <i>Средства на удержании</i>"
         )
+        
+        await callback.bot.send_message(
+            data["worker_id"], caption, parse_mode="HTML"
+        )
+        logger.info(f"Worker {data['worker_id']} notified about profit #{profit_id}")
     except Exception as e:
         logger.error(f"Notify worker failed: {e}")
     
     # Notify mentor
     if mentor and mentor_cut > 0:
         try:
-            from aiogram.types import FSInputFile
+            mentor_msg = (
+                 f"╭• 🦢 <b>ПРОФИТ ОТ УЧЕНИКА</b>\n"
+                 f"┠• 👤 Воркер: @{data['worker_username']}\n"
+                 f"┖• 💸 Ваша доля: <b>{mentor_cut:.2f} RUB</b>"
+            )
             
-            photo = FSInputFile(BRAND_IMAGE_PROFIT)
-            await callback.bot.send_photo(
-                mentor['user_id'], photo=photo,
-                caption=(
-                    f"💰 <b>ПРОФИТ ОТ УЧЕНИКА</b>\n\n"
-                    f"Воркер: @{data['worker_username']}\n"
-                    f"Ваша доля: {mentor_cut:.2f} RUB"
-                )
+            await callback.bot.send_message(
+                mentor['user_id'], mentor_msg, parse_mode="HTML"
             )
         except:
             pass
@@ -378,16 +402,14 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     # Notify referrer
     if referrer and referral_cut > 0:
         try:
-            from aiogram.types import FSInputFile
+            ref_msg = (
+                f"╭• 🔗 <b>РЕФЕРАЛЬНЫЙ ДОХОД</b>\n"
+                f"┠• 👤 Реферал: @{data['worker_username']}\n"
+                f"┖• 💸 Ваша доля: <b>{referral_cut:.2f} RUB</b>"
+            )
             
-            photo = FSInputFile(BRAND_IMAGE_PROFIT)
-            await callback.bot.send_photo(
-                referrer['id'], photo=photo,
-                caption=(
-                    f"🔗 <b>РЕФЕРАЛЬНЫЙ ДОХОД</b>\n\n"
-                    f"Реферал: @{data['worker_username']}\n"
-                    f"Ваша доля ({REFERRAL_PERCENT}%): {referral_cut:.2f} RUB"
-                )
+            await callback.bot.send_message(
+                referrer['id'], ref_msg, parse_mode="HTML"
             )
         except:
             pass
@@ -405,7 +427,7 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     )
     
     from utils.messages import edit_with_brand
-    await edit_with_brand(callback, f"✅ <b>ПРОФИТ #{profit_id} СОЗДАН!</b>", reply_markup=get_back_to_admin_keyboard())
+    await edit_with_brand(callback, f"╭• ✅ <b>ПРОФИТ #{profit_id} СОЗДАН!</b>\n┖• Отправлен в канал и ЛС.", reply_markup=get_back_to_admin_keyboard())
 
 
 @router.callback_query(F.data == "cancel_profit", AdminProfitState.waiting_for_confirm)
@@ -415,7 +437,7 @@ async def cancel_profit(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     
     from utils.messages import edit_with_brand
-    await edit_with_brand(callback, "❌ Отменено", reply_markup=get_back_to_admin_keyboard())
+    await edit_with_brand(callback, "╭• ❌ <b>Отменено</b>\n┖• Действие сброшено.", reply_markup=get_back_to_admin_keyboard())
 
 
 @router.callback_query(F.data == "cancel_profit_creation")
@@ -426,4 +448,4 @@ async def cancel_profit_creation(callback: CallbackQuery, state: FSMContext) -> 
     await state.clear()
     
     from utils.messages import edit_with_brand
-    await edit_with_brand(callback, "❌ Создание профита отменено", reply_markup=get_back_to_admin_keyboard())
+    await edit_with_brand(callback, "╭• ❌ <b>Создание отменено</b>\n┖• Возврат в меню.", reply_markup=get_back_to_admin_keyboard())

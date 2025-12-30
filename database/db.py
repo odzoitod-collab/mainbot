@@ -162,8 +162,9 @@ async def get_user(user_id: int) -> Optional[Dict[str, Any]]:
 
 
 async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
-    """Get user by username."""
-    result = get_db().table("users").select("*").eq("username", username).execute()
+    """Get user by username (case-insensitive)."""
+    username = username.lower().lstrip("@")
+    result = get_db().table("users").select("*").ilike("username", username).execute()
     return result.data[0] if result.data else None
 
 

@@ -4,6 +4,7 @@ import time
 from typing import Callable, Dict, Any, Awaitable, Optional, Tuple
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
+from aiogram.enums import ChatType
 
 from database import get_user
 
@@ -19,6 +20,9 @@ REGISTRATION_CALLBACKS = frozenset({
 })
 
 REGISTRATION_PREFIXES = ("approve_", "decline_")
+
+# Commands allowed in groups without registration
+GROUP_COMMANDS = frozenset({"/top", "/topm", "/topw", "/topd", "/help", "/card", "/me", "/stats"})
 
 
 class UserCheckMiddleware(BaseMiddleware):
@@ -78,6 +82,15 @@ class UserCheckMiddleware(BaseMiddleware):
             self._set_cached_user(user.id, db_user)
             data["db_user"] = db_user
             return await handler(event, data)
+        
+        # Allow group commands without strict user check
+        if isinstance(event, Message) and event.chat.type in (ChatType.GROUP, ChatType.SUPERGROUP):
+            if event.text:
+                cmd = event.text.split()[0].split("@")[0]  # Remove @botname
+                if cmd in GROUP_COMMANDS:
+                    db_user = await get_user(user.id)
+                    data["db_user"] = db_user
+                    return await handler(event, data)
         
         # Allow registration callbacks
         if isinstance(event, CallbackQuery):

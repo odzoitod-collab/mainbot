@@ -217,12 +217,22 @@ async def receive_source(callback: CallbackQuery, state: FSMContext) -> None:
     )
     
     try:
-        await callback.bot.send_message(
+        sent_message = await callback.bot.send_message(
             APPLICATIONS_CHANNEL_ID, channel_text,
             reply_markup=get_admin_decision_keyboard(user_id)
         )
+        logger.info(f"Application sent to channel {APPLICATIONS_CHANNEL_ID}, message_id: {sent_message.message_id}")
     except Exception as e:
-        logger.error(f"Failed to send application: {e}")
+        logger.error(f"Failed to send application to channel {APPLICATIONS_CHANNEL_ID}: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        # Try to notify user about the issue
+        try:
+            await callback.bot.send_message(
+                user_id,
+                "⚠️ Анкета сохранена, но возникла проблема с отправкой в канал. Администратор уведомлен."
+            )
+        except:
+            pass
 
 
 @router.callback_query(F.data.startswith("approve_"))
