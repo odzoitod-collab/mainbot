@@ -16,6 +16,7 @@ from keyboards.registration import (
     get_admin_decision_keyboard,
     get_join_team_keyboard
 )
+from keyboards.user_kb import get_main_static_keyboard
 from database import get_user, create_user, update_user_status
 from config import APPLICATIONS_CHANNEL_ID
 
@@ -242,13 +243,20 @@ async def approve_application(callback: CallbackQuery) -> None:
     await update_user_status(user_id, "active")
     
     try:
+        # Отправляем приветственное сообщение с inline клавиатурой
+        from config import CHAT_GROUP_URL
         await callback.bot.send_message(
             user_id,
             "🎉 <b>ВЫ ПРИНЯТЫ В КОМАНДУ!</b>\n\n"
             "✅ Ваша анкета одобрена.\n"
-            "👇 Нажмите кнопку чтобы начать:",
+            "👇 Нажмите кнопку чтобы начать:\n\n"
+            f"💬 <b>Также присоединяйтесь к нашему чату:</b>\n"
+            f"{CHAT_GROUP_URL}\n\n"
+            "Там вы найдете единомышленников, получите поддержку\n"
+            "и сможете делиться опытом с другими участниками команды!",
             reply_markup=get_join_team_keyboard()
         )
+        
     except Exception as e:
         logger.error(f"Failed to notify user {user_id}: {e}")
     

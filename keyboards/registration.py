@@ -86,6 +86,8 @@ def get_admin_decision_keyboard(user_id: int) -> InlineKeyboardMarkup:
 
 def get_join_team_keyboard() -> InlineKeyboardMarkup:
     """Get join team keyboard."""
+    from config import CHAT_GROUP_URL
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Войти в команду", callback_data="join_team")]
+        [InlineKeyboardButton(text="🚀 Войти в команду", callback_data="join_team")],
+        [InlineKeyboardButton(text="💬 Перейти в чат", url=CHAT_GROUP_URL)]
     ])

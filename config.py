@@ -4,7 +4,7 @@ from typing import List
 # ============================================
 # TELEGRAM BOT
 # ============================================
-BOT_TOKEN: str = "8451842564:AAE8wIEZyb2c4EQ8BdBa4Murtt7lSxZMRQU"
+BOT_TOKEN: str = "7236713833:AAGCM0zPW6lsHX_SF6kmOUGrakIZNAFu9mw"
 BOT_USERNAME: str = "irlteam_bot"
 
 # ============================================
@@ -20,9 +20,9 @@ PROFITS_CHANNEL_ID: int = -1003076536737
 # Канал для заявок (сюда приходят анкеты новых пользователей)
 APPLICATIONS_CHANNEL_ID: int = -1003424658660
 
-
 # Общий чат команды
 CHAT_GROUP_ID: int = -1003076536737
+CHAT_GROUP_URL: str = "https://t.me/+eaLPwFM0eGo3MGRk"
 
 # ============================================
 # REFERRAL SYSTEM
@@ -48,6 +48,16 @@ WEBAPP_HUB: str = "https://hisrory-vo62.vercel.app/"
 # ============================================
 # IMAGES
 # ============================================
-BRAND_IMAGE_WELCOME: str = "images/welcome.png"  # Регистрация
-BRAND_IMAGE_LOGO: str = "images/logo.png"        # Всё остальное
-BRAND_IMAGE_PROFIT: str = "images/профит.jpg"    # Уведомления о профитах
+BRAND_IMAGE_WELCOME: str = "images/главное.jpg"        # Регистрация
+BRAND_IMAGE_LOGO: str = "images/главное.jpg"           # Всё остальное по умолчанию
+BRAND_IMAGE_PROFIT: str = "images/профиты.jpg"         # Уведомления о профитах
+
+# Изображения для разделов бота
+BRAND_IMAGE_MAIN_MENU: str = "images/главное.jpg"      # Главное меню
+BRAND_IMAGE_PROFILE: str = "images/профиль.jpg"        # Профиль
+BRAND_IMAGE_SERVICES: str = "images/сервисы.jpg"       # Сервисы
+BRAND_IMAGE_MENTORS: str = "images/наставники.jpg"     # Наставники
+BRAND_IMAGE_REFERRALS: str = "images/рефералка.jpg"    # Рефералы
+BRAND_IMAGE_PROFITS: str = "images/профиты.jpg"        # История профитов
+BRAND_IMAGE_PAYMENTS: str = "images/Реквизиты.jpg"     # Прямые платежи
+BRAND_IMAGE_COMMUNITY: str = "images/сообщество.jpg"   # Сообщество/ресурсы

@@ -1,8 +1,20 @@
 """User keyboards for main menu and navigation."""
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 from typing import List, Dict, Any
 
 import config
+
+
+def get_main_static_keyboard() -> ReplyKeyboardMarkup:
+    """Get main static keyboard with quick access button."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🏠 Главное меню")]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False,
+        persistent=True
+    )
 
 
 def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False) -> InlineKeyboardMarkup:
@@ -13,11 +25,19 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
             InlineKeyboardButton(text="📊 Аналитика", web_app=WebAppInfo(url=config.WEBAPP_ANALYTICS))
         ],
         [
+            InlineKeyboardButton(text="🛠 Сервисы", callback_data="services"),
+            InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")
+        ],
+        [
             InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB)),
             InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="choose_mentor")
         ],
         [
-            InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments")
+            InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments"),
+            InlineKeyboardButton(text="💰 История", callback_data="profit_history")
+        ],
+        [
+            InlineKeyboardButton(text="💬 Чат", url=config.CHAT_GROUP_URL)
         ]
     ]
 
@@ -30,9 +50,8 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
 def get_profile_keyboard() -> InlineKeyboardMarkup:
     """Get profile inline keyboard."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="� Исатория профитов", web_app=WebAppInfo(url=config.WEBAPP_PROFITS_HISTORY))],
-        [InlineKeyboardButton(text="🔗 Реферальная ссылка", callback_data="referral_link")],
-        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="main_menu")]
+        [InlineKeyboardButton(text="💰 История профитов", web_app=WebAppInfo(url=config.WEBAPP_PROFITS_HISTORY))],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
     ])
 
 
@@ -45,24 +64,17 @@ def get_profit_history_keyboard(current_page: int, total_pages: int) -> InlineKe
         pagination_row = []
         
         if current_page > 0:
-            pagination_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"profit_page_{current_page - 1}"))
-        else:
-            pagination_row.append(InlineKeyboardButton(text="·", callback_data="none"))
+            pagination_row.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=f"profit_page_{current_page - 1}"))
         
-        pagination_row.append(InlineKeyboardButton(text=f"{current_page + 1}/{total_pages}", callback_data="none"))
+        pagination_row.append(InlineKeyboardButton(text=f"Стр. {current_page + 1}/{total_pages}", callback_data="none"))
         
         if current_page < total_pages - 1:
-            pagination_row.append(InlineKeyboardButton(text="➡️", callback_data=f"profit_page_{current_page + 1}"))
-        else:
-            pagination_row.append(InlineKeyboardButton(text="·", callback_data="none"))
+            pagination_row.append(InlineKeyboardButton(text="Вперед ➡️", callback_data=f"profit_page_{current_page + 1}"))
         
         buttons.append(pagination_row)
     
     # Navigation
-    buttons.append([
-        InlineKeyboardButton(text="👤 К профилю", callback_data="profile"),
-        InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
-    ])
+    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -71,13 +83,22 @@ def get_services_keyboard(services: List[Dict[str, Any]]) -> InlineKeyboardMarku
     """Get services selection keyboard."""
     buttons = []
     
-    for service in services:
-        icon = service.get("icon", "🔹")
-        buttons.append([
-            InlineKeyboardButton(text=f"{icon} {service['name']}", callback_data=f"service_{service['id']}")
-        ])
+    # Группируем сервисы по 2 в ряд для компактности
+    for i in range(0, len(services), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(services):
+                service = services[i + j]
+                icon = service.get("icon", "🔹")
+                row.append(InlineKeyboardButton(
+                    text=f"{icon} {service['name']}", 
+                    callback_data=f"service_{service['id']}"
+                ))
+        buttons.append(row)
     
+    # Простая навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -85,18 +106,23 @@ def get_service_detail_keyboard(service_id: int, manual_link: str = None, bot_li
     """Get service detail keyboard with links."""
     buttons = []
     
-    # Links in separate rows
+    # Ссылки в одном ряду если обе есть
+    links_row = []
     if manual_link and manual_link.strip():
-        buttons.append([InlineKeyboardButton(text="📖 Мануал", url=manual_link.strip())])
+        links_row.append(InlineKeyboardButton(text="📖 Открыть мануал", url=manual_link.strip()))
     
     if bot_link and bot_link.strip():
-        buttons.append([InlineKeyboardButton(text="🤖 Бот", url=bot_link.strip())])
+        links_row.append(InlineKeyboardButton(text="🤖 Перейти к боту", url=bot_link.strip()))
     
-    # Navigation
-    buttons.append([
-        InlineKeyboardButton(text="🛠 К сервисам", callback_data="services"),
-        InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
-    ])
+    if links_row:
+        if len(links_row) == 2:
+            buttons.append(links_row)
+        else:
+            buttons.append([links_row[0]])
+    
+    # Простая навигация
+    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -110,27 +136,17 @@ def get_resources_keyboard(resources: List[Dict[str, Any]]) -> InlineKeyboardMar
             InlineKeyboardButton(text=f"{icon} {resource['title']}", url=resource['content_link'])
         ])
     
+    # Простая навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_back_to_menu_keyboard(section: str = None) -> InlineKeyboardMarkup:
-    """Get back keyboard with optional section button."""
-    buttons = []
-    
-    if section:
-        section_map = {
-            "profile": ("👤 К профилю", "profile"),
-            "services": ("🛠 К сервисам", "services"),
-            "mentors": ("👨‍🏫 К наставникам", "choose_mentor"),
-            "community": ("📚 К материалам", "community"),
-        }
-        if section in section_map:
-            text, callback = section_map[section]
-            buttons.append([InlineKeyboardButton(text=text, callback_data=callback)])
-    
-    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    """Get back keyboard - always leads to main menu for simplicity."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+    ])
 
 
 
@@ -139,12 +155,16 @@ def get_mentor_services_keyboard(services: List[str]) -> InlineKeyboardMarkup:
     """Get mentor services selection keyboard."""
     buttons = []
     
+    # Группируем сервисы по 1 в ряд для ясности
     for service in services:
-        buttons.append([
-            InlineKeyboardButton(text=f"🛠 {service}", callback_data=f"mentor_service_{service[:30]}")
-        ])
+        buttons.append([InlineKeyboardButton(
+            text=f"🛠 {service}", 
+            callback_data=f"mentor_service_{service[:30]}"
+        )])
     
+    # Простая навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -158,10 +178,9 @@ def get_mentor_selection_keyboard(mentors: List[Dict[str, Any]], service_name: s
             InlineKeyboardButton(text=f"👨‍🏫 {name}", callback_data=f"select_mentor_{mentor['id']}")
         ])
     
-    buttons.append([
-        InlineKeyboardButton(text="👨‍🏫 К наставникам", callback_data="choose_mentor"),
-        InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
-    ])
+    # Простая навигация
+    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -174,11 +193,9 @@ def get_mentor_detail_keyboard(mentor_id: int, has_mentor: bool, service_name: s
     else:
         buttons.append([InlineKeyboardButton(text="✅ Выбрать наставника", callback_data=f"confirm_mentor_{mentor_id}")])
     
-    buttons.append([
-        InlineKeyboardButton(text="🔙 Назад", callback_data=f"mentor_service_{service_name[:30]}"),
-        InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="choose_mentor")
-    ])
+    # Простая навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -205,9 +222,6 @@ def get_referral_keyboard(ref_link: str, website_url: str) -> InlineKeyboardMark
     """Get referral link keyboard."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Мои рефералы", web_app=WebAppInfo(url=config.WEBAPP_REFERRALS))],
-        [InlineKeyboardButton(text="📤 Поделиться", switch_inline_query=f"Присоединяйся к команде! {ref_link}")],
-        [
-            InlineKeyboardButton(text="👤 К профилю", callback_data="profile"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
-        ]
+        [InlineKeyboardButton(text="📤 Поделиться ссылкой", switch_inline_query=f"Присоединяйся к команде! {ref_link}")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
     ])

@@ -274,7 +274,8 @@ async def receive_stage(callback: CallbackQuery, state: FSMContext) -> None:
     mentor_cut = 0
     mentor_text = ""
     
-    if mentor:
+    # Проверяем, что наставник работает по тому же сервису, что и профит
+    if mentor and mentor['service_name'].lower() == data["service_name"].lower():
         mentor_cut = profit_with_bonus * (mentor['percent'] / 100)
         mentor_text = f"┠• 👨‍🏫 <b>Наставник:</b> @{mentor['username']} ({mentor_cut:.2f} ₽)\n"
     
@@ -331,7 +332,8 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     net_profit = profit_with_bonus # Referral cut usually doesn't reduce worker profit in most teams, but if it does, adjust here. Assuming standard model where referral is extra or from admin cut.
     # Note: In previous code `net_profit = profit_with_bonus - referral_cut`. Keeping logical consistency with standard logic:
     
-    if mentor:
+    # Проверяем, что наставник работает по тому же сервису, что и профит
+    if mentor and mentor['service_name'].lower() == data["service_name"].lower():
         mentor_cut = profit_with_bonus * (mentor['percent'] / 100)
         net_profit = profit_with_bonus - mentor_cut
         await update_mentor_stats(mentor['id'], mentor_cut)
@@ -342,7 +344,7 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
     if referrer and referral_cut > 0:
         await create_referral_profit(referrer['id'], data["worker_id"], profit_id, referral_cut)
     
-    if mentor and mentor_cut > 0:
+    if mentor and mentor_cut > 0 and mentor['service_name'].lower() == data["service_name"].lower():
         await create_mentor_profit(mentor['id'], mentor['user_id'], data["worker_id"], profit_id, mentor_cut, mentor['percent'])
     
     # Check rank up

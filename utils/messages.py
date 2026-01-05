@@ -71,31 +71,20 @@ async def edit_with_brand(
     callback: CallbackQuery,
     text: str,
     reply_markup: Optional[InlineKeyboardMarkup] = None,
-    parse_mode: str = "HTML"
+    parse_mode: str = "HTML",
+    image_path: Optional[str] = None
 ) -> bool:
-    """Edit message - keep photo if exists, or send new with photo."""
+    """Edit message - always use correct image for the section."""
     try:
         msg = callback.message
+        img_path = image_path or BRAND_IMAGE_LOGO
         
-        # Message has photo - just edit caption
-        if msg.photo:
-            try:
-                await msg.edit_caption(
-                    caption=text,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-                return True
-            except TelegramBadRequest as e:
-                if "message is not modified" in str(e):
-                    return True
-                raise
-        
-        # No photo - delete old message and send new with photo
+        # Always delete old message and send new with correct image
+        # This ensures the right image is always shown
         with suppress(Exception):
             await msg.delete()
         
-        await send_with_brand(callback, text, reply_markup, parse_mode)
+        await send_with_brand(callback, text, reply_markup, parse_mode, img_path)
         return True
         
     except Exception as e:
@@ -104,7 +93,7 @@ async def edit_with_brand(
         with suppress(Exception):
             await callback.message.delete()
         with suppress(Exception):
-            await send_with_brand(callback, text, reply_markup, parse_mode)
+            await send_with_brand(callback, text, reply_markup, parse_mode, img_path)
         return False
 
 
