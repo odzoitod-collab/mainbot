@@ -4,7 +4,7 @@ from typing import List
 # ============================================
 # TELEGRAM BOT
 # ============================================
-BOT_TOKEN: str = "7236713833:AAGCM0zPW6lsHX_SF6kmOUGrakIZNAFu9mw"
+BOT_TOKEN: str = "8451842564:AAFqOFfQUbpgi4LQpNMoxsLc01mJDSlUXTw"
 BOT_USERNAME: str = "irlteam_bot"
 
 # ============================================
