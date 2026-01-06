@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRL Team • Идеи</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #8e8e93;
+            --tg-theme-link-color: #2AABEE;
+            --tg-theme-button-color: #2AABEE;
+            --tg-theme-button-text-color: #ffffff;
+        }
+
+        :root {
+            --bg: var(--tg-theme-bg-color);
+            --bg2: var(--tg-theme-secondary-bg-color);
+            --text: var(--tg-theme-text-color);
+            --hint: var(--tg-theme-hint-color);
+            --accent: var(--tg-theme-button-color);
+            --accent-light: rgba(42, 171, 238, 0.12);
+            --btn-text: var(--tg-theme-button-text-color);
+            --green: #34C759;
+            --green-light: rgba(52, 199, 89, 0.12);
+            --orange: #FF9500;
+            --orange-light: rgba(255, 149, 0, 0.12);
+            --red: #FF3B30;
+            --purple: #AF52DE;
+            --radius: 16px;
+            --radius-sm: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg2);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header & Main UI styles same as before */
+        .header {
+            background: var(--bg);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid var(--bg2);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #1E96D1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            color: white;
+            font-weight: bold;
+        }
+
+        .header-info { flex: 1; min-width: 0; }
+        .header-title { font-size: 18px; font-weight: 700; }
+        .header-sub { font-size: 13px; color: var(--hint); margin-top: 2px; }
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--accent) 0%, #1E96D1 100%);
+            margin: 16px;
+            border-radius: var(--radius);
+            padding: 24px 20px;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(42, 171, 238, 0.3);
+        }
+
+        .card {
+            background: var(--bg);
+            border-radius: var(--radius);
+            margin: 0 16px 16px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        /* Modal Styles Updated */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg);
+            border-radius: 24px 24px 0 0;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh; /* Адаптивная высота */
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .modal.show {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--bg2);
+            flex-shrink: 0;
+        }
+
+        .modal-drag-indicator {
+            width: 40px;
+            height: 4px;
+            background: var(--bg2);
+            border-radius: 2px;
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Inputs & Controls */
+        .category-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .category-scroll::-webkit-scrollbar { display: none; }
+
+        .category-pill {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--bg2);
+            background: var(--bg2);
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-pill.selected {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--hint);
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .input, .select, .textarea {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid var(--bg2);
+            background: var(--bg2);
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+            transition: 0.2s;
+            appearance: none;
+        }
+
+        .input:focus, .select:focus, .textarea:focus {
+            background: var(--bg);
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 2px var(--accent-light);
+        }
+
+        .textarea { resize: none; min-height: 100px; }
+
+        /* Poll Styles */
+        .poll-container {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg2);
+            border-radius: var(--radius-sm);
+        }
+
+        .poll-question {
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 15px;
+        }
+
+        .poll-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: var(--bg);
+            border: 1px solid var(--bg2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .poll-option:hover {
+            border-color: var(--accent);
+        }
+
+        .poll-option.voted {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .poll-option-text {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .poll-option-votes {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--hint);
+            margin-left: 12px;
+        }
+
+        .poll-option.voted .poll-option-votes {
+            color: var(--accent);
+        }
+
+        .poll-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--accent-light);
+            transition: width 0.3s ease;
+            z-index: 1;
+        }
+
+        .poll-option-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .poll-total {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--hint);
+        }
+
+        /* Poll Options */
+        .poll-option-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .btn-remove { background: rgba(255, 59, 48, 0.1); color: var(--red); }
+        .btn-add { 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--bg2); 
+            color: var(--accent);
+            font-weight: 600;
+            border-radius: 12px;
+            border: 1px dashed var(--accent);
+            margin-top: 8px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 16px rgba(42, 171, 238, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 40;
+            transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="header">
+        <div class="header-avatar">
+            <img v-if="user?.photo_url" :src="user.photo_url" style="width:100%;height:100%;object-fit:cover;">
+            <span v-else>{{ user?.first_name?.[0] || '?' }}</span>
+        </div>
+        <div class="header-info">
+            <div class="header-title">IRL Team • Идеи</div>
+            <div class="header-sub">{{ ideas.length }} записей</div>
+        </div>
+    </div>
+
+    <div class="stats-card">
+        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 4px;">Всего голосов</div>
+        <div style="font-size: 32px; font-weight: 800;">{{ totalVotes }}</div>
+        <div style="display:flex; gap:20px; margin-top:16px; border-top:1px solid rgba(255,255,255,0.2); padding-top:16px;">
+            <div>
+                <div style="font-weight:700; font-size:18px;">{{ ideas.length }}</div>
+                <div style="font-size:12px; opacity:0.8;">Идей</div>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:18px;">{{ topIdeasCount }}</div>
+                <div style="font-size:12px; opacity:0.8;">В топе</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="padding-bottom: 100px;">
+        <div v-if="loading" style="text-align: center; padding: 40px; color: var(--hint);">
+            Загрузка...
+        </div>
+
+        <div v-else-if="ideas.length === 0" style="text-align: center; padding: 60px 20px;">
+            <div style="font-size: 40px; margin-bottom: 10px;">💡</div>
+            <h3>Пока пусто</h3>
+            <p style="color: var(--hint); margin-top: 8px;">Станьте первым, кто предложит идею!</p>
+        </div>
+
+        <div v-for="idea in sortedIdeas" :key="idea.id" class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:32px; height:32px; background:var(--bg2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">
+                        {{ idea.user_name?.[0] || '?' }}
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">{{ idea.user_name }}</div>
+                        <div style="font-size:11px; color:var(--hint);">{{ formatDate(idea.created_at) }}</div>
+                    </div>
+                </div>
+                <div style="padding:4px 8px; background:var(--bg2); border-radius:8px; font-size:11px; font-weight:600; display:flex; align-items:center; gap:4px;">
+                    {{ getCategoryIcon(idea.category) }} {{ idea.category }}
+                </div>
+            </div>
+
+            <div v-if="isPoll(idea)" class="poll-container">
+                <div class="poll-question">{{ getPollData(idea).question }}</div>
+                <div v-for="(option, idx) in getPollData(idea).options" :key="idx" 
+                     class="poll-option"
+                     :class="{ voted: hasVotedInPoll(idea, idx) }"
+                     @click="voteInPoll(idea, idx)">
+                    <div class="poll-progress" 
+                         :style="{ width: (getPollData(idea).votes[idx] / Math.max(1, getPollData(idea).votes.reduce((a,b) => a+b, 0)) * 100) + '%' }">
+                    </div>
+                    <div class="poll-option-content">
+                        <div class="poll-option-text">{{ option }}</div>
+                        <div class="poll-option-votes">{{ getPollData(idea).votes[idx] }}</div>
+                    </div>
+                </div>
+                <div class="poll-total">
+                    Всего голосов: {{ getPollData(idea).votes.reduce((a,b) => a+b, 0) }}
+                </div>
+            </div>
+
+            <div v-else style="white-space: pre-wrap; font-size: 15px; line-height: 1.5; color: var(--text);">{{ idea.content }}</div>
+
+            <div style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--bg2); padding-top: 12px;">
+                <button @click="vote(idea)" 
+                        style="background:none; border:none; display:flex; align-items:center; gap:6px; font-weight:600; font-size:14px; cursor:pointer;"
+                        :style="{ color: hasLiked(idea) ? 'var(--red)' : 'var(--hint)' }">
+                    <svg width="20" height="20" viewBox="0 0 24 24" :fill="hasLiked(idea) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    {{ idea.votes_count }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button class="fab" @click="openModal">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+    </button>
+
+    <div class="modal-overlay" :class="{ show: showModal }" @click="closeModal">
+        <div class="modal" :class="{ show: showModal }" @click.stop>
+            <div class="modal-drag-indicator"></div>
+            
+            <div class="modal-header">
+                <div style="font-weight: 700; font-size: 18px;">Новая запись</div>
+                <button @click="closeModal" style="background:var(--bg2); border:none; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Тип записи</label>
+                    <div class="category-scroll">
+                        <div v-for="cat in categories" 
+                             :key="cat.id" 
+                             class="category-pill"
+                             :class="{ selected: form.category === cat.id }"
+                             @click="setCategory(cat.id)">
+                            <span>{{ cat.icon }}</span>
+                            {{ cat.name }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" v-if="['bug', 'mentor'].includes(form.category)">
+                    <label class="form-label">Сервис <span style="color:var(--red)">*</span></label>
+                    <select v-model="form.service" class="select">
+                        <option value="" disabled>Выберите сервис...</option>
+                        <option v-for="svc in serviceList" :key="svc" :value="svc">{{ svc }}</option>
+                    </select>
+                </div>
+
+                <div class="form-group" v-if="form.category === 'improvement'">
+                    <label class="form-label">Что улучшить <span style="color:var(--red)">*</span></label>
+                    <input v-model="form.target" type="text" class="input" placeholder="Например: Дизайн профиля">
+                </div>
+
+                <div class="form-group" v-if="form.category === 'mentor'">
+                    <label class="form-label">Название поста <span style="color:var(--red)">*</span></label>
+                    <input v-model="form.title" type="text" class="input" placeholder="Краткий заголовок темы">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        {{ form.category === 'poll' ? 'Вопрос для голосования' : 
+                           form.category === 'bug' ? 'Описание проблемы' : 
+                           form.category === 'mentor' ? 'Содержание поста' : 'Описание' }}
+                           <span style="color:var(--red)">*</span>
+                    </label>
+                    <textarea 
+                        v-model="form.content" 
+                        class="textarea" 
+                        :placeholder="getPlaceholder"
+                        rows="4"
+                    ></textarea>
+                </div>
+
+                <div class="form-group" v-if="form.category === 'poll'">
+                    <label class="form-label">Варианты ответов ({{ form.options.length }}/6)</label>
+                    
+                    <div v-for="(opt, idx) in form.options" :key="idx" class="poll-option-row">
+                        <div style="font-weight:600; color:var(--hint); width: 20px;">{{ idx + 1 }}.</div>
+                        <input v-model="form.options[idx]" type="text" class="input" :placeholder="'Вариант ' + (idx+1)">
+                        <button v-if="form.options.length > 2" @click="removeOption(idx)" class="btn-icon btn-remove">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <button v-if="form.options.length < 6" @click="addOption" class="btn-add">
+                        + Добавить вариант
+                    </button>
+                </div>
+
+                <div style="margin-top: 32px;">
+                    <button class="btn-primary" @click="submitIdea" :disabled="!canSubmit || isSubmitting">
+                        <span v-if="isSubmitting">Отправка...</span>
+                        <span v-else>Опубликовать</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, reactive } = Vue
+const { createClient } = supabase
+
+// Настройки Supabase
+const SUPABASE_URL = 'https://sqoehqvvrbbgaqvkniyw.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxb2VocXZ2cmJiZ2FxdmtuaXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5ODkzODUsImV4cCI6MjA4MjU2NTM4NX0.-Qam5GFLwzFCvM2MrEYv3HbLeRYUPOLPnLRqcLPcasg'
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+createApp({
+    setup() {
+        // Данные
+        const user = ref(null)
+        const ideas = ref([])
+        const serviceList = ref([])
+        const loading = ref(true)
+        const showModal = ref(false)
+        const isSubmitting = ref(false)
+
+        // Форма
+        const form = reactive({
+            category: 'idea',
+            content: '',
+            service: '',
+            target: '',
+            title: '',
+            options: ['', '']
+        })
+
+        // Категории
+        const categories = [
+            { id: 'idea', name: 'Идея', icon: '💡' },
+            { id: 'poll', name: 'Опрос', icon: '📊' },
+            { id: 'bug', name: 'Баг', icon: '🐛' },
+            { id: 'improvement', name: 'Улучшение', icon: '⚡' },
+            { id: 'mentor', name: 'Наставник', icon: '👨‍🏫' },
+            { id: 'service', name: 'Сервис', icon: '🛠️' }
+        ]
+
+        const tg = window.Telegram.WebApp
+
+        // Computed
+        const totalVotes = computed(() => ideas.value.reduce((acc, i) => acc + (i.votes_count || 0), 0))
+        const topIdeasCount = computed(() => ideas.value.filter(i => (i.votes_count || 0) >= 5).length)
+        
+        const sortedIdeas = computed(() => {
+            return [...ideas.value].sort((a, b) => {
+                // Сначала новые, если голосов поровну, иначе по голосам (или наоборот, по желанию)
+                // Здесь сортировка: Сначала по голосам (desc), потом по дате (desc)
+                if (b.votes_count !== a.votes_count) return b.votes_count - a.votes_count
+                return new Date(b.created_at) - new Date(a.created_at)
+            })
+        })
+
+        const getPlaceholder = computed(() => {
+            const map = {
+                poll: 'Задайте вопрос команде...',
+                bug: 'Опишите ошибку, шаги воспроизведения...',
+                improvement: 'Как именно это поможет проекту?',
+                mentor: 'Текст поста, ссылки, материалы...',
+                service: 'Описание сервиса...',
+                idea: 'Опишите вашу идею подробно...'
+            }
+            return map[form.category] || 'Текст...'
+        })
+
+        const canSubmit = computed(() => {
+            if (!form.content.trim()) return false
+            
+            if (form.category === 'poll') {
+                // Минимум 2 заполненных варианта
+                return form.options.filter(o => o.trim()).length >= 2
+            }
+            if (form.category === 'bug') return !!form.service
+            if (form.category === 'mentor') return !!form.service && !!form.title.trim()
+            if (form.category === 'improvement') return !!form.target.trim()
+            
+            return true
+        })
+
+        // Methods
+        const openModal = () => { showModal.value = true; tg.HapticFeedback.impactOccurred('light'); }
+        
+        const closeModal = () => {
+            showModal.value = false
+            // Сброс формы через 300мс чтобы не мигало при закрытии
+            setTimeout(() => {
+                form.category = 'idea'
+                form.content = ''
+                form.service = ''
+                form.target = ''
+                form.title = ''
+                form.options = ['', '']
+            }, 300)
+        }
+
+        const setCategory = (id) => {
+            form.category = id
+            tg.HapticFeedback.selectionChanged()
+        }
+
+        const addOption = () => { if (form.options.length < 6) form.options.push('') }
+        const removeOption = (idx) => { if (form.options.length > 2) form.options.splice(idx, 1) }
+
+        const hasLiked = (idea) => idea.liked_by?.includes(user.value?.id?.toString())
+
+        const isPoll = (idea) => {
+            try {
+                const parsed = JSON.parse(idea.content)
+                return parsed.question && parsed.options && Array.isArray(parsed.options)
+            } catch {
+                return false
+            }
+        }
+
+        const getPollData = (idea) => {
+            try {
+                return JSON.parse(idea.content)
+            } catch {
+                return null
+            }
+        }
+
+        const hasVotedInPoll = (idea, optionIndex) => {
+            const pollData = getPollData(idea)
+            if (!pollData || !pollData.voters) return false
+            return pollData.voters[optionIndex]?.includes(user.value?.id?.toString())
+        }
+
+        const voteInPoll = async (idea, optionIndex) => {
+            const pollData = getPollData(idea)
+            if (!pollData) return
+
+            const userId = user.value.id.toString()
+            const hasVoted = hasVotedInPoll(idea, optionIndex)
+
+            // Проверяем, голосовал ли уже в других вариантах
+            const votedOptionIndex = pollData.voters.findIndex(voters => voters.includes(userId))
+            
+            if (votedOptionIndex !== -1 && votedOptionIndex !== optionIndex) {
+                // Убираем голос из предыдущего варианта
+                pollData.votes[votedOptionIndex]--
+                pollData.voters[votedOptionIndex] = pollData.voters[votedOptionIndex].filter(id => id !== userId)
+            }
+
+            if (hasVoted) {
+                // Убираем голос
+                pollData.votes[optionIndex]--
+                pollData.voters[optionIndex] = pollData.voters[optionIndex].filter(id => id !== userId)
+            } else {
+                // Добавляем голос
+                pollData.votes[optionIndex]++
+                if (!pollData.voters[optionIndex]) pollData.voters[optionIndex] = []
+                pollData.voters[optionIndex].push(userId)
+            }
+
+            // Обновляем в базе
+            const { error } = await sb.from('ideas')
+                .update({ content: JSON.stringify(pollData) })
+                .eq('id', idea.id)
+
+            if (!error) {
+                // Обновляем локально
+                const idx = ideas.value.findIndex(i => i.id === idea.id)
+                if (idx !== -1) {
+                    ideas.value[idx].content = JSON.stringify(pollData)
+                }
+                tg.HapticFeedback.selectionChanged()
+            }
+        }
+
+        const formatDate = (dateStr) => {
+            const d = new Date(dateStr)
+            return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        }
+
+        const getCategoryIcon = (catName) => {
+            const cat = categories.find(c => c.name === catName)
+            return cat ? cat.icon : '📝'
+        }
+
+        // --- Data Logic ---
+
+        const fetchData = async () => {
+            loading.value = true
+            // Идеи
+            const { data: ideasData } = await sb.from('ideas').select('*').order('created_at', { ascending: false })
+            if (ideasData) ideas.value = ideasData
+
+            // Сервисы из таблицы mentors
+            const { data: mentorsData } = await sb.from('mentors').select('service_name').eq('is_active', true)
+            if (mentorsData) {
+                // Убираем дубликаты
+                serviceList.value = [...new Set(mentorsData.map(m => m.service_name))]
+            }
+            loading.value = false
+        }
+
+        const vote = async (idea) => {
+            tg.HapticFeedback.selectionChanged()
+            // Оптимистичное обновление UI
+            const isLiked = hasLiked(idea)
+            const userId = user.value.id.toString()
+            
+            // Локально обновляем массив
+            if (isLiked) {
+                idea.votes_count--
+                idea.liked_by = idea.liked_by.filter(id => id !== userId)
+            } else {
+                idea.votes_count++
+                if (!idea.liked_by) idea.liked_by = []
+                idea.liked_by.push(userId)
+            }
+
+            // Запрос к базе
+            const { error } = await sb.rpc('toggle_vote', {
+                row_id: idea.id,
+                user_tg_id: userId
+            })
+            if (error) console.error(error) // Если ошибка, можно откатить, но пока оставим так
+        }
+
+        const submitIdea = async () => {
+            if (!canSubmit.value) return
+            isSubmitting.value = true
+            tg.HapticFeedback.notificationOccurred('success')
+
+            let finalContent = form.content.trim()
+
+            // Форматирование контента
+            if (form.category === 'bug') {
+                finalContent = `🐛 Сервис: ${form.service}\n\n${finalContent}`
+            } else if (form.category === 'improvement') {
+                finalContent = `⚡ Улучшить: ${form.target}\n\n${finalContent}`
+            } else if (form.category === 'mentor') {
+                finalContent = `👨‍🏫 Сервис: ${form.service}\n📌 Тема: ${form.title}\n\n${finalContent}`
+            } else if (form.category === 'poll') {
+                const validOptions = form.options.filter(o => o.trim())
+                // Сохраняем опции как JSON для интерактивности
+                const pollData = {
+                    question: finalContent,
+                    options: validOptions,
+                    votes: validOptions.map(() => 0),
+                    voters: validOptions.map(() => [])
+                }
+                finalContent = JSON.stringify(pollData)
+            }
+
+            const catObj = categories.find(c => c.id === form.category)
+            
+            const newIdea = {
+                user_id: user.value.id.toString(),
+                user_name: user.value.username ? `@${user.value.username}` : user.value.first_name,
+                content: finalContent,
+                category: catObj ? catObj.name : 'Идея',
+                votes_count: 0,
+                liked_by: []
+            }
+
+            const { data, error } = await sb.from('ideas').insert(newIdea).select()
+
+            if (!error && data) {
+                ideas.value.unshift(data[0])
+                closeModal()
+            } else {
+                tg.showAlert('Ошибка отправки')
+            }
+            isSubmitting.value = false
+        }
+
+        onMounted(() => {
+            tg.ready()
+            tg.expand()
+            
+            // Инициализация юзера
+            if (tg.initDataUnsafe?.user) {
+                user.value = tg.initDataUnsafe.user
+            } else {
+                // Mock user for browser testing
+                user.value = { id: 123456, first_name: 'Test', username: 'tester', photo_url: '' }
+            }
+
+            fetchData()
+
+            // Realtime подписка
+            sb.channel('public:ideas')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, (payload) => {
+                    if (payload.eventType === 'INSERT') ideas.value.unshift(payload.new)
+                    if (payload.eventType === 'UPDATE') {
+                        const idx = ideas.value.findIndex(i => i.id === payload.new.id)
+                        if (idx !== -1) ideas.value[idx] = payload.new
+                    }
+                    if (payload.eventType === 'DELETE') {
+                        ideas.value = ideas.value.filter(i => i.id !== payload.old.id)
+                    }
+                })
+                .subscribe()
+        })
+
+        return {
+            user, ideas, sortedIdeas, loading, form, categories, serviceList,
+            showModal, isSubmitting, totalVotes, topIdeasCount, canSubmit, getPlaceholder,
+            openModal, closeModal, setCategory, addOption, removeOption,
+            vote, hasLiked, submitIdea, formatDate, getCategoryIcon,
+            isPoll, getPollData, hasVotedInPoll, voteInPoll
+        }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

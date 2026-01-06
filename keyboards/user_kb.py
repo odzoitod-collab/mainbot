@@ -37,6 +37,7 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
             InlineKeyboardButton(text="💰 История", callback_data="profit_history")
         ],
         [
+            InlineKeyboardButton(text="💡 Идеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS)),
             InlineKeyboardButton(text="💬 Чат", url=config.CHAT_GROUP_URL)
         ]
     ]

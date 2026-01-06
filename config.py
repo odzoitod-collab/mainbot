@@ -44,6 +44,7 @@ WEBAPP_ANALYTICS: str = "https://anakaitack-web.vercel.app/"
 WEBAPP_REFERRALS: str = "https://anakaitack-web-9fio.vercel.app/"
 WEBAPP_PROFITS_HISTORY: str = "https://hisrory.vercel.app/"
 WEBAPP_HUB: str = "https://hisrory-vo62.vercel.app/"
+WEBAPP_IDEAS: str = "https://ideas-omega-three.vercel.app/"
 
 # ============================================
 # IMAGES
