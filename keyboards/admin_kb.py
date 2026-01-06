@@ -18,11 +18,12 @@ def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🛠 Контент", callback_data="manage_content"),
             InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="manage_mentors")
         ],
-        # Settings section
         [
-            InlineKeyboardButton(text="💳 Прямики", callback_data="manage_direct_payments"),
-            InlineKeyboardButton(text="👥 Пользователи", callback_data="manage_users")
+            InlineKeyboardButton(text="👥 Комьюнити", callback_data="manage_communities"),
+            InlineKeyboardButton(text="👤 Пользователи", callback_data="manage_users")
         ],
+        # Settings section
+        [InlineKeyboardButton(text="💳 Прямики", callback_data="manage_direct_payments")],
         # Communication
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="broadcast")],
         # Navigation
@@ -356,3 +357,65 @@ def get_direct_payments_admin_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👤 Изменить поддержку", callback_data="edit_support")],
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
+
+
+# ============================================
+# COMMUNITIES MANAGEMENT
+# ============================================
+
+def get_communities_admin_keyboard() -> InlineKeyboardMarkup:
+    """Get communities admin management keyboard."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏳ Заявки на модерацию", callback_data="pending_communities")],
+        [InlineKeyboardButton(text="📋 Все комьюнити", callback_data="all_communities")],
+        [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
+    ])
+
+
+def get_pending_communities_keyboard(communities: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
+    """Get pending communities keyboard."""
+    buttons = []
+    
+    for community in communities:
+        creator_name = community.get('creator_name', 'Неизвестный')
+        name = community['name'][:20] + "..." if len(community['name']) > 20 else community['name']
+        buttons.append([InlineKeyboardButton(
+            text=f"📝 {name} • {creator_name}",
+            callback_data=f"review_community_{community['id']}"
+        )])
+    
+    if not communities:
+        buttons.append([InlineKeyboardButton(text="✅ Нет заявок", callback_data="none")])
+    
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="manage_communities")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_community_review_keyboard(community_id: int) -> InlineKeyboardMarkup:
+    """Get community review keyboard."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Одобрить", callback_data=f"approve_community_{community_id}"),
+            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_community_{community_id}")
+        ],
+        [InlineKeyboardButton(text="🔙 К заявкам", callback_data="pending_communities")]
+    ])
+
+
+def get_all_communities_keyboard(communities: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
+    """Get all communities admin keyboard."""
+    buttons = []
+    
+    for community in communities:
+        name = community['name'][:25] + "..." if len(community['name']) > 25 else community['name']
+        members = community.get('members_count', 0)
+        buttons.append([InlineKeyboardButton(
+            text=f"🗑 {name} ({members} чел.)",
+            callback_data=f"delete_community_{community['id']}"
+        )])
+    
+    if not communities:
+        buttons.append([InlineKeyboardButton(text="📭 Нет комьюнити", callback_data="none")])
+    
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="manage_communities")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

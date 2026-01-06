@@ -6,7 +6,8 @@ from aiogram.types import Message, FSInputFile
 
 from database import (
     get_user, get_user_stats, get_top_workers, get_user_position,
-    get_direct_payment_settings, get_active_user_ids
+    get_direct_payment_settings, get_active_user_ids, get_team_stats_by_period,
+    get_mentors
 )
 from config import ADMIN_IDS, BRAND_IMAGE_LOGO
 
@@ -16,15 +17,32 @@ router = Router()
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    await message.reply(
-        "📋 <b>КОМАНДЫ</b>\n\n"
-        "👤 /me - Профиль\n"
-        "/card - Реквизиты\n\n"
-        "🏆 /top - Топ за всё время\n"
-        "/topm - За месяц\n"
-        "/topw - За неделю\n"
-        "/topd - За день"
-    )
+    try:
+        photo = FSInputFile("images/главное.jpg")
+        await message.reply_photo(
+            photo=photo,
+            caption="📋 <b>КОМАНДЫ</b>\n\n"
+                    "👤 /me - Профиль\n"
+                    "💳 /card - Реквизиты\n\n"
+                    "🏆 /top - Топ за всё время\n"
+                    "📅 /topm - За месяц\n"
+                    "📊 /topw - За неделю\n"
+                    "⏰ /topd - За день\n\n"
+                    "💰 /kasa - Касса команды\n"
+                    "👨‍🏫 /kurator - Список наставников"
+        )
+    except Exception:
+        await message.reply(
+            "📋 <b>КОМАНДЫ</b>\n\n"
+            "👤 /me - Профиль\n"
+            "💳 /card - Реквизиты\n\n"
+            "🏆 /top - Топ за всё время\n"
+            "📅 /topm - За месяц\n"
+            "📊 /topw - За неделю\n"
+            "⏰ /topd - За день\n\n"
+            "💰 /kasa - Касса команды\n"
+            "👨‍🏫 /kurator - Список наставников"
+        )
 
 
 @router.message(Command("me"))
@@ -53,7 +71,7 @@ async def cmd_me(message: Message) -> None:
     ])
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_LOGO)
+        photo = FSInputFile("images/профиль.jpg")
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
@@ -73,7 +91,7 @@ async def cmd_card(message: Message) -> None:
     text += f"📸 Скрин: @{settings['support_username']}"
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_LOGO)
+        photo = FSInputFile("images/Реквизиты.jpg")
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
@@ -115,10 +133,81 @@ async def _show_top(message: Message, period: str, title: str) -> None:
         text += f"{medal} <b>{name}</b>\n   💰 {w['total_profit']:.2f} RUB • {w['profit_count']} шт\n"
     
     try:
-        photo = FSInputFile(BRAND_IMAGE_LOGO)
+        photo = FSInputFile("images/профиты.jpg")
         await message.reply_photo(photo=photo, caption=text)
     except Exception:
         await message.reply(text)
+
+
+@router.message(Command("kasa"))
+async def cmd_kasa(message: Message) -> None:
+    """Показать кассу команды за все время."""
+    try:
+        # Получаем статистику команды за все время
+        team_stats = await get_team_stats_by_period("all")
+        top_workers = await get_top_workers("all", 5)
+        
+        text = "💰 <b>КАССА КОМАНДЫ</b>\n\n"
+        text += f"💵 Общий профит: <b>{team_stats['total_profit']:.2f} RUB</b>\n"
+        text += f"📊 Количество профитов: <b>{team_stats['profits_count']}</b>\n"
+        text += f"👥 Активных воркеров: <b>{team_stats['active_workers']}</b>\n"
+        text += f"📈 Средний профит: <b>{team_stats['avg_profit']:.2f} RUB</b>\n\n"
+        
+        if top_workers:
+            text += "🏆 <b>ТОП-5 ВОРКЕРОВ:</b>\n"
+            for i, worker in enumerate(top_workers[:5], 1):
+                name = f"@{worker['username']}" if worker.get('username') else worker['full_name']
+                text += f"{i}. {name} - {worker['total_profit']:.2f} RUB\n"
+        
+        try:
+            photo = FSInputFile("images/главное.jpg")
+            await message.reply_photo(photo=photo, caption=text)
+        except Exception:
+            await message.reply(text)
+            
+    except Exception as e:
+        logger.error(f"Error in cmd_kasa: {e}")
+        await message.reply("❌ Ошибка получения данных кассы.")
+
+
+@router.message(Command("kurator"))
+async def cmd_kurator(message: Message) -> None:
+    """Показать список наставников."""
+    try:
+        mentors = await get_mentors()
+        
+        if not mentors:
+            await message.reply("👨‍🏫 <b>НАСТАВНИКИ</b>\n\nНаставники не найдены.")
+            return
+        
+        text = "👨‍🏫 <b>СПИСОК НАСТАВНИКОВ</b>\n\n"
+        
+        # Группируем наставников по сервисам
+        services = {}
+        for mentor in mentors:
+            service = mentor['service_name']
+            if service not in services:
+                services[service] = []
+            services[service].append(mentor)
+        
+        for service_name, service_mentors in services.items():
+            text += f"🔹 <b>{service_name}</b>\n"
+            for mentor in service_mentors:
+                name = f"@{mentor['username']}" if mentor.get('username') else mentor['full_name']
+                students = mentor.get('students_count', 0)
+                percent = mentor.get('percent', 0)
+                text += f"   • {name} ({percent}% | {students} учеников)\n"
+            text += "\n"
+        
+        try:
+            photo = FSInputFile("images/наставники.jpg")
+            await message.reply_photo(photo=photo, caption=text)
+        except Exception:
+            await message.reply(text)
+            
+    except Exception as e:
+        logger.error(f"Error in cmd_kurator: {e}")
+        await message.reply("❌ Ошибка получения списка наставников.")
 
 
 @router.message(Command("stats"))

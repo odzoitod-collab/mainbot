@@ -26,19 +26,19 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
         ],
         [
             InlineKeyboardButton(text="🛠 Сервисы", callback_data="services"),
-            InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")
-        ],
-        [
-            InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB)),
-            InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="choose_mentor")
+            InlineKeyboardButton(text="�‍🏫 еНаставники", callback_data="choose_mentor")
         ],
         [
             InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments"),
-            InlineKeyboardButton(text="💰 История", callback_data="profit_history")
+            InlineKeyboardButton(text="�‍ Рефералы", callback_data="referral_link")
         ],
         [
-            InlineKeyboardButton(text="💡 Идеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS)),
-            InlineKeyboardButton(text="💬 Чат", url=config.CHAT_GROUP_URL)
+            InlineKeyboardButton(text="� Комьюкнити", callback_data="community"),
+            InlineKeyboardButton(text="� Чать", url=config.CHAT_GROUP_URL)
+        ],
+        [
+            InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB)),
+            InlineKeyboardButton(text="� ЧИдеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS))
         ]
     ]
 
@@ -224,5 +224,53 @@ def get_referral_keyboard(ref_link: str, website_url: str) -> InlineKeyboardMark
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Мои рефералы", web_app=WebAppInfo(url=config.WEBAPP_REFERRALS))],
         [InlineKeyboardButton(text="📤 Поделиться ссылкой", switch_inline_query=f"Присоединяйся к команде! {ref_link}")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+    ])
+
+
+def get_communities_keyboard(communities: List[Dict[str, Any]], user_profit: float) -> InlineKeyboardMarkup:
+    """Get communities list keyboard."""
+    buttons = []
+    
+    # Communities list
+    for community in communities:
+        status_icon = "✅" if community.get("is_member") else "👥"
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"{status_icon} {community['name']} ({community['members_count']})",
+                callback_data=f"community_view_{community['id']}"
+            )
+        ])
+    
+    # Create community button (if user has enough profit)
+    if user_profit >= 50000:
+        buttons.append([InlineKeyboardButton(text="➕ Создать комьюнити", callback_data="community_create")])
+    
+    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_community_detail_keyboard(community_id: int, is_member: bool, is_creator: bool = False) -> InlineKeyboardMarkup:
+    """Get community detail keyboard."""
+    buttons = []
+    
+    if is_member:
+        buttons.append([InlineKeyboardButton(text="❌ Покинуть", callback_data=f"community_leave_{community_id}")])
+    else:
+        buttons.append([InlineKeyboardButton(text="✅ Присоединиться", callback_data=f"community_join_{community_id}")])
+    
+    buttons.append([
+        InlineKeyboardButton(text="🔙 К списку", callback_data="community"),
+        InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")
+    ])
+    
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_community_create_keyboard() -> InlineKeyboardMarkup:
+    """Get community creation keyboard."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 К списку", callback_data="community")],
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
     ])

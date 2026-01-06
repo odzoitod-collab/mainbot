@@ -61,3 +61,11 @@ class AdminDirectPaymentState(StatesGroup):
     waiting_for_requisites = State()
     waiting_for_additional_info = State()
     waiting_for_support_username = State()
+
+
+class CommunityCreateState(StatesGroup):
+    """States for community creation flow."""
+    waiting_for_name = State()
+    waiting_for_description = State()
+    waiting_for_chat_link = State()
+    waiting_for_confirm = State()

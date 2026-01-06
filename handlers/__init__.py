@@ -8,6 +8,8 @@ from handlers.admin_mentors import router as admin_mentors_router
 from handlers.admin_broadcast import router as admin_broadcast_router
 from handlers.admin_close import router as admin_close_router
 from handlers.admin_direct_payments import router as admin_direct_payments_router
+from handlers.community_create import router as community_create_router
+from handlers.admin_communities import router as admin_communities_router
 
 __all__ = [
     "registration_router",
@@ -19,4 +21,6 @@ __all__ = [
     "admin_broadcast_router",
     "admin_close_router",
     "admin_direct_payments_router",
+    "community_create_router",
+    "admin_communities_router",
 ]

@@ -665,6 +665,102 @@ async def get_main_menu_data(user_id: int) -> Dict[str, Any]:
 
 
 # ============================================
+# COMMUNITY OPERATIONS
+# ============================================
+
+@cached("communities", TTL_MEDIUM)
+async def get_communities_for_user(user_id: int) -> List[Dict[str, Any]]:
+    """Get all approved communities with user membership status."""
+    result = get_db().rpc("get_communities_for_user", {"p_user_id": user_id}).execute()
+    return result.data or []
+
+
+async def get_community(community_id: int) -> Optional[Dict[str, Any]]:
+    """Get community by ID."""
+    result = get_db().table("communities").select("*, creator:creator_id(full_name, username)").eq("id", community_id).execute()
+    return result.data[0] if result.data else None
+
+
+async def create_community_request(user_id: int, name: str, description: str, chat_link: str) -> int:
+    """Create community request (pending approval)."""
+    result = get_db().table("communities").insert({
+        "name": name,
+        "description": description,
+        "chat_link": chat_link,
+        "creator_id": user_id,
+        "status": "pending"
+    }).execute()
+    cache.clear_prefix("communities")
+    return result.data[0]["id"] if result.data else 0
+
+
+async def get_pending_communities() -> List[Dict[str, Any]]:
+    """Get pending communities for admin approval."""
+    result = get_db().rpc("get_pending_communities").execute()
+    return result.data or []
+
+
+async def approve_community(community_id: int, admin_id: int) -> bool:
+    """Approve community."""
+    result = get_db().table("communities").update({
+        "status": "approved",
+        "approved_at": datetime.utcnow().isoformat(),
+        "approved_by": admin_id
+    }).eq("id", community_id).execute()
+    cache.clear_prefix("communities")
+    return len(result.data) > 0
+
+
+async def reject_community(community_id: int, admin_id: int) -> bool:
+    """Reject community."""
+    result = get_db().table("communities").update({
+        "status": "rejected",
+        "approved_by": admin_id
+    }).eq("id", community_id).execute()
+    cache.clear_prefix("communities")
+    return len(result.data) > 0
+
+
+async def delete_community(community_id: int) -> bool:
+    """Delete community (soft delete)."""
+    result = get_db().table("communities").update({"is_active": False}).eq("id", community_id).execute()
+    cache.clear_prefix("communities")
+    return len(result.data) > 0
+
+
+async def join_community(user_id: int, community_id: int) -> bool:
+    """Join community."""
+    try:
+        get_db().table("community_members").insert({
+            "community_id": community_id,
+            "user_id": user_id
+        }).execute()
+        cache.clear_prefix("communities")
+        return True
+    except:
+        return False
+
+
+async def leave_community(user_id: int, community_id: int) -> bool:
+    """Leave community."""
+    result = get_db().table("community_members").delete().eq("community_id", community_id).eq("user_id", user_id).execute()
+    cache.clear_prefix("communities")
+    return len(result.data) > 0
+
+
+async def is_community_member(user_id: int, community_id: int) -> bool:
+    """Check if user is community member."""
+    result = get_db().table("community_members").select("id").eq("community_id", community_id).eq("user_id", user_id).eq("is_active", True).execute()
+    return len(result.data) > 0
+
+
+async def get_user_communities(user_id: int) -> List[Dict[str, Any]]:
+    """Get communities user is member of."""
+    result = get_db().table("community_members").select("*, community:community_id(*)").eq("user_id", user_id).eq("is_active", True).execute()
+    return [item["community"] for item in result.data or [] if item.get("community")]
+
+
+# ============================================
 # USERS BY STATUS & BAN/UNBAN
 # ============================================
 

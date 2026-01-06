@@ -81,18 +81,21 @@ async def main() -> None:
     from handlers import (
         chat_commands_router, registration_router, user_menu_router,
         admin_profit_router, admin_manage_router, admin_mentors_router,
-        admin_broadcast_router, admin_close_router, admin_direct_payments_router
+        admin_broadcast_router, admin_close_router, admin_direct_payments_router,
+        community_create_router, admin_communities_router
     )
     
     dp.include_router(chat_commands_router)
     dp.include_router(registration_router)
     dp.include_router(user_menu_router)
+    dp.include_router(community_create_router)
     dp.include_router(admin_profit_router)
     dp.include_router(admin_manage_router)
     dp.include_router(admin_mentors_router)
     dp.include_router(admin_broadcast_router)
     dp.include_router(admin_close_router)
     dp.include_router(admin_direct_payments_router)
+    dp.include_router(admin_communities_router)
     
     logger.info("✅ Bot ready")
     

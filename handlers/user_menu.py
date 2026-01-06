@@ -7,24 +7,29 @@ from contextlib import suppress
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, TelegramObject
+from aiogram.fsm.context import FSMContext
 
 from keyboards.user_kb import (
     get_main_menu_keyboard, get_profile_keyboard, get_profit_history_keyboard,
     get_services_keyboard, get_service_detail_keyboard, get_resources_keyboard,
     get_back_to_menu_keyboard, get_mentor_services_keyboard, get_mentor_selection_keyboard,
     get_mentor_detail_keyboard, get_direct_payments_keyboard, get_referral_keyboard,
-    get_main_static_keyboard
+    get_main_static_keyboard, get_communities_keyboard, get_community_detail_keyboard,
+    get_community_create_keyboard
 )
 from database import (
     get_user, get_user_stats, get_user_profits, get_services, get_service,
     get_resources, get_user_mentor, get_mentor,
     get_mentor_services, get_mentors_by_service,
     assign_mentor, remove_mentor, update_user_activity, get_direct_payment_settings,
-    get_referral_stats, get_user_position, get_profile_data
+    get_referral_stats, get_user_position, get_profile_data,
+    get_communities_for_user, get_community, create_community_request,
+    join_community, leave_community, is_community_member
 )
 from utils.messages import answer_with_brand, edit_with_brand
 from utils.design import header, profit_card
 from config import ADMIN_IDS, BRAND_IMAGE_LOGO, BRAND_IMAGE_MAIN_MENU, BRAND_IMAGE_PROFILE, BRAND_IMAGE_SERVICES, BRAND_IMAGE_MENTORS, BRAND_IMAGE_REFERRALS, BRAND_IMAGE_PROFITS, BRAND_IMAGE_PAYMENTS, BRAND_IMAGE_COMMUNITY, WEBSITE_URL
+from states.all_states import CommunityCreateState
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -258,9 +263,31 @@ async def show_service_detail(callback: CallbackQuery) -> None:
 async def show_community(callback: CallbackQuery) -> None:
     await callback.answer()
     
-    resources = await get_resources()
-    text = header("Материалы", "📚")
-    await edit_with_brand(callback, text, reply_markup=get_resources_keyboard(resources), image_path=BRAND_IMAGE_COMMUNITY)
+    # Get user stats to check profit requirement
+    user_stats = await get_user_stats(callback.from_user.id)
+    communities = await get_communities_for_user(callback.from_user.id)
+    
+    text = (
+        f"{header('Комьюнити', '👥')}\n\n"
+        f"🌟 <b>Присоединяйся к сообществам единомышленников!</b>\n\n"
+        f"Здесь ты можешь найти команды по интересам,\n"
+        f"обмениваться опытом и развиваться вместе.\n\n"
+    )
+    
+    if user_stats.get('total_profit', 0) >= 50000:
+        text += f"💰 У тебя {user_stats['total_profit']:.0f} RUB - можешь создать своё комьюнити!\n\n"
+    else:
+        needed = 50000 - user_stats.get('total_profit', 0)
+        text += f"💰 Для создания комьюнити нужно {needed:.0f} RUB профита\n\n"
+    
+    if not communities:
+        text += "<i>Пока нет доступных комьюнити.</i>"
+    
+    await edit_with_brand(
+        callback, text, 
+        reply_markup=get_communities_keyboard(communities, user_stats.get('total_profit', 0)), 
+        image_path=BRAND_IMAGE_COMMUNITY
+    )
 
 
 @router.callback_query(F.data == "choose_mentor")
@@ -410,3 +437,105 @@ async def show_direct_payments(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "none")
 async def ignore_none(callback: CallbackQuery) -> None:
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("community_view_"))
+async def show_community_detail(callback: CallbackQuery) -> None:
+    await callback.answer()
+    
+    try:
+        community_id = int(callback.data.split("_")[2])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка", show_alert=True)
+        return
+    
+    community = await get_community(community_id)
+    if not community:
+        await callback.answer("❌ Комьюнити не найдено", show_alert=True)
+        return
+    
+    is_member = await is_community_member(callback.from_user.id, community_id)
+    creator_name = community.get('creator', {}).get('full_name', 'Неизвестный')
+    
+    text = (
+        f"👥 <b>{community['name']}</b>\n\n"
+        f"📝 <b>Описание:</b>\n{community.get('description', 'Описание отсутствует')}\n\n"
+        f"👤 <b>Создатель:</b> {creator_name}\n"
+        f"👥 <b>Участников:</b> {community['members_count']}\n"
+        f"📅 <b>Создано:</b> {_format_date(community['created_at'])}\n\n"
+    )
+    
+    if is_member:
+        text += "✅ <b>Вы участник этого комьюнити</b>\n"
+        text += f"💬 <b>Ссылка на чат:</b> {community['chat_link']}"
+    else:
+        text += "❌ <b>Вы не участник этого комьюнити</b>"
+    
+    await edit_with_brand(
+        callback, text,
+        reply_markup=get_community_detail_keyboard(community_id, is_member),
+        image_path=BRAND_IMAGE_COMMUNITY
+    )
+
+
+@router.callback_query(F.data.startswith("community_join_"))
+async def join_community_handler(callback: CallbackQuery) -> None:
+    await callback.answer()
+    
+    try:
+        community_id = int(callback.data.split("_")[2])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка", show_alert=True)
+        return
+    
+    success = await join_community(callback.from_user.id, community_id)
+    if success:
+        await callback.answer("✅ Вы присоединились к комьюнити!", show_alert=True)
+        # Refresh the community detail view
+        await show_community_detail(callback)
+    else:
+        await callback.answer("❌ Ошибка при присоединении", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("community_leave_"))
+async def leave_community_handler(callback: CallbackQuery) -> None:
+    await callback.answer()
+    
+    try:
+        community_id = int(callback.data.split("_")[2])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка", show_alert=True)
+        return
+    
+    success = await leave_community(callback.from_user.id, community_id)
+    if success:
+        await callback.answer("✅ Вы покинули комьюнити", show_alert=True)
+        # Refresh the community detail view
+        await show_community_detail(callback)
+    else:
+        await callback.answer("❌ Ошибка при выходе", show_alert=True)
+
+
+@router.callback_query(F.data == "community_create")
+async def start_community_creation(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    
+    # Check profit requirement
+    user_stats = await get_user_stats(callback.from_user.id)
+    if user_stats.get('total_profit', 0) < 50000:
+        await callback.answer("❌ Недостаточно профита для создания комьюнити", show_alert=True)
+        return
+    
+    text = (
+        f"{header('Создание комьюнити', '➕')}\n\n"
+        f"🎯 <b>Шаг 1 из 3: Название</b>\n\n"
+        f"Введите название для вашего комьюнити:\n"
+        f"<i>Максимум 100 символов</i>"
+    )
+    
+    await edit_with_brand(
+        callback, text,
+        reply_markup=get_community_create_keyboard(),
+        image_path=BRAND_IMAGE_COMMUNITY
+    )
+    await state.set_state(CommunityCreateState.waiting_for_name)
