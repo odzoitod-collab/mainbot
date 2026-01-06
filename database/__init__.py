@@ -37,6 +37,11 @@ from database.db import (
     add_mentor, assign_mentor, remove_mentor,
     update_mentor_stats, delete_mentor,
     
+    # Communities
+    get_communities_for_user, get_community, create_community_request,
+    get_pending_communities, approve_community, reject_community, delete_community,
+    join_community, leave_community, is_community_member, get_user_communities,
+    
     # Admin
     log_admin_action,
     
@@ -74,6 +79,9 @@ __all__ = [
     "get_mentor_services", "get_mentors_by_service",
     "add_mentor", "assign_mentor", "remove_mentor",
     "update_mentor_stats", "delete_mentor",
+    "get_communities_for_user", "get_community", "create_community_request",
+    "get_pending_communities", "approve_community", "reject_community", "delete_community",
+    "join_community", "leave_community", "is_community_member", "get_user_communities",
     "log_admin_action", "log_rank_change",
     "create_notification", "get_unread_count",
     "get_setting", "set_setting",

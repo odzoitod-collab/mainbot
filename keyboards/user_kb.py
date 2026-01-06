@@ -26,19 +26,19 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
         ],
         [
             InlineKeyboardButton(text="🛠 Сервисы", callback_data="services"),
-            InlineKeyboardButton(text="�‍🏫 еНаставники", callback_data="choose_mentor")
+            InlineKeyboardButton(text="👨🏿‍🏫 Наставники", callback_data="choose_mentor")
         ],
         [
             InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments"),
-            InlineKeyboardButton(text="�‍ Рефералы", callback_data="referral_link")
+            InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")
         ],
         [
-            InlineKeyboardButton(text="� Комьюкнити", callback_data="community"),
-            InlineKeyboardButton(text="� Чать", url=config.CHAT_GROUP_URL)
+            InlineKeyboardButton(text="🎓 Комьюкнити", callback_data="community"),
+            InlineKeyboardButton(text="💭 Чат", url=config.CHAT_GROUP_URL)
         ],
         [
             InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB)),
-            InlineKeyboardButton(text="� ЧИдеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS))
+            InlineKeyboardButton(text="💡 Идеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS))
         ]
     ]
 
