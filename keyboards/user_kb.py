@@ -26,14 +26,14 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
         ],
         [
             InlineKeyboardButton(text="🛠 Сервисы", callback_data="services"),
-            InlineKeyboardButton(text="👨🏿‍🏫 Наставники", callback_data="choose_mentor")
+            InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="choose_mentor")
         ],
         [
             InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments"),
             InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")
         ],
         [
-            InlineKeyboardButton(text="🎓 Комьюкнити", callback_data="community"),
+            InlineKeyboardButton(text="👥 Комьюнити", callback_data="community"),
             InlineKeyboardButton(text="💭 Чат", url=config.CHAT_GROUP_URL)
         ],
         [
