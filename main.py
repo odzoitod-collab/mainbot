@@ -15,6 +15,7 @@ import config
 from database import init_db
 from middlewares.user_check import UserCheckMiddleware
 from middlewares.throttling import ThrottlingMiddleware
+from middlewares.group_keyboard_remove import GroupKeyboardRemoveMiddleware
 
 # Logging
 logging.basicConfig(
@@ -51,6 +52,7 @@ async def main() -> None:
     # Middlewares (order matters - throttling first)
     dp.message.middleware(ThrottlingMiddleware(rate_limit=0.5))
     dp.callback_query.middleware(ThrottlingMiddleware(rate_limit=0.3))
+    dp.message.middleware(GroupKeyboardRemoveMiddleware())  # Remove reply keyboard in groups
     dp.message.middleware(UserCheckMiddleware())
     dp.callback_query.middleware(UserCheckMiddleware())
     
