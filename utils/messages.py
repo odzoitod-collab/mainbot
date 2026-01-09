@@ -107,8 +107,8 @@ async def answer_with_brand(
     static_keyboard = None
 ) -> Optional[Message]:
     """Answer with brand image and optional static keyboard."""
-    # Set static keyboard if provided (silently)
-    if static_keyboard:
+    # Set static keyboard only in private chats (not in groups)
+    if static_keyboard and message.chat.type == "private":
         try:
             await message.answer(".", reply_markup=static_keyboard, parse_mode="HTML")
             # Try to delete the dot message
