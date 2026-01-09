@@ -668,7 +668,7 @@ async def get_main_menu_data(user_id: int) -> Dict[str, Any]:
 # COMMUNITY OPERATIONS
 # ============================================
 
-@cached("communities", TTL_MEDIUM)
+@cached("communities", TTL_SHORT)
 async def get_communities_for_user(user_id: int) -> List[Dict[str, Any]]:
     """Get all approved communities with user membership status."""
     result = get_db().rpc("get_communities_for_user", {"p_user_id": user_id}).execute()
@@ -677,8 +677,29 @@ async def get_communities_for_user(user_id: int) -> List[Dict[str, Any]]:
 
 async def get_community(community_id: int) -> Optional[Dict[str, Any]]:
     """Get community by ID."""
-    result = get_db().table("communities").select("*, creator:creator_id(full_name, username)").eq("id", community_id).execute()
-    return result.data[0] if result.data else None
+    try:
+        # Get community without join first
+        result = get_db().table("communities").select("*").eq("id", community_id).execute()
+        if result.data:
+            community = result.data[0]
+            
+            # Get creator info separately
+            creator_id = community.get('creator_id')
+            if creator_id:
+                creator_result = get_db().table("users").select("full_name, username").eq("id", creator_id).execute()
+                if creator_result.data:
+                    community['creator'] = creator_result.data[0]
+                else:
+                    community['creator'] = {}
+            else:
+                community['creator'] = {}
+            
+            return community
+        return None
+    except Exception as e:
+        import logging
+        logging.error(f"Error getting community {community_id}: {e}")
+        return None
 
 
 async def create_community_request(user_id: int, name: str, description: str, chat_link: str) -> int:
@@ -696,6 +717,7 @@ async def create_community_request(user_id: int, name: str, description: str, ch
 
 async def get_pending_communities() -> List[Dict[str, Any]]:
     """Get pending communities for admin approval."""
+    # Don't cache pending communities - always get fresh data
     result = get_db().rpc("get_pending_communities").execute()
     return result.data or []
 

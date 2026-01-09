@@ -4,29 +4,36 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def get_admin_menu_keyboard() -> InlineKeyboardMarkup:
-    """Get admin menu keyboard with organized sections."""
+    """Get admin menu keyboard with beautiful organized sections."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        # Main actions
+        # 🎯 ОСНОВНЫЕ ДЕЙСТВИЯ
         [InlineKeyboardButton(text="💰 Создать профит", callback_data="create_profit")],
-        # Payouts section
+        
+        # 📊 АНАЛИТИКА И ВЫПЛАТЫ
         [
             InlineKeyboardButton(text="💸 Выплаты", callback_data="view_payouts"),
-            InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")
+            InlineKeyboardButton(text="📈 Статистика", callback_data="admin_stats")
         ],
-        # Management section
+        
+        # 👥 УПРАВЛЕНИЕ ЛЮДЬМИ
         [
-            InlineKeyboardButton(text="🛠 Контент", callback_data="manage_content"),
+            InlineKeyboardButton(text="👤 Пользователи", callback_data="manage_users"),
             InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="manage_mentors")
         ],
+        
+        # 🏢 УПРАВЛЕНИЕ КОНТЕНТОМ
         [
-            InlineKeyboardButton(text="👥 Комьюнити", callback_data="manage_communities"),
-            InlineKeyboardButton(text="👤 Пользователи", callback_data="manage_users")
+            InlineKeyboardButton(text="🛠 Сервисы", callback_data="manage_content"),
+            InlineKeyboardButton(text="👥 Комьюнити", callback_data="manage_communities")
         ],
-        # Settings section
-        [InlineKeyboardButton(text="💳 Прямики", callback_data="manage_direct_payments")],
-        # Communication
-        [InlineKeyboardButton(text="📢 Рассылка", callback_data="broadcast")],
-        # Navigation
+        
+        # ⚙️ НАСТРОЙКИ И ИНСТРУМЕНТЫ
+        [
+            InlineKeyboardButton(text="💳 Прямики", callback_data="manage_direct_payments"),
+            InlineKeyboardButton(text="📢 Рассылка", callback_data="broadcast")
+        ],
+        
+        # 🏠 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
     ])
 
@@ -91,13 +98,22 @@ def get_service_selection_keyboard(services: List[Dict[str, Any]]) -> InlineKeyb
 # ============================================
 
 def get_payout_type_keyboard() -> InlineKeyboardMarkup:
-    """Get payout type selection keyboard."""
+    """Get payout type selection keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💰 Воркеры", callback_data="payouts_workers")],
-        [InlineKeyboardButton(text="🔗 Рефералы", callback_data="payouts_referrals")],
-        [InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="payouts_mentors")],
+        # 💰 ОСНОВНЫЕ ВЫПЛАТЫ
+        [
+            InlineKeyboardButton(text="💼 Воркеры", callback_data="payouts_workers"),
+            InlineKeyboardButton(text="🔗 Рефералы", callback_data="payouts_referrals")
+        ],
+        [
+            InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="payouts_mentors")
+        ],
+        
+        # ⚡ БЫСТРЫЕ ДЕЙСТВИЯ
         [InlineKeyboardButton(text="✅ Выплатить всем", callback_data="payout_all")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_menu")]
+        
+        # 🔙 НАВИГАЦИЯ
+        [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
 
@@ -132,25 +148,33 @@ def get_mentor_payout_keyboard(summary: List[Dict[str, Any]]) -> InlineKeyboardM
 # ============================================
 
 def get_content_category_keyboard() -> InlineKeyboardMarkup:
-    """Get content category selection keyboard."""
+    """Get content category selection keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
+        # 📋 КАТЕГОРИИ КОНТЕНТА
         [
             InlineKeyboardButton(text="🛠 Сервисы", callback_data="manage_services"),
             InlineKeyboardButton(text="📚 Ресурсы", callback_data="manage_resources")
         ],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
 
 def get_content_action_keyboard(category: str = "services") -> InlineKeyboardMarkup:
-    """Get content action keyboard."""
+    """Get content action keyboard with beautiful design."""
     back_callback = "manage_content"
     return InlineKeyboardMarkup(inline_keyboard=[
+        # ⚡ ОСНОВНЫЕ ДЕЙСТВИЯ
         [
             InlineKeyboardButton(text="➕ Добавить", callback_data="content_add"),
-            InlineKeyboardButton(text="📋 Список", callback_data="content_list")
+            InlineKeyboardButton(text="📋 Просмотр", callback_data="content_list")
         ],
+        
+        # 🗑 УПРАВЛЕНИЕ
         [InlineKeyboardButton(text="🗑 Удалить", callback_data="content_delete")],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Назад", callback_data=back_callback)]
     ])
 
@@ -206,13 +230,15 @@ def get_resource_type_keyboard() -> InlineKeyboardMarkup:
 # ============================================
 
 def get_mentor_list_keyboard(mentors: List[Dict[str, Any]]) -> InlineKeyboardMarkup:
-    """Get mentor list keyboard."""
+    """Get mentor list keyboard with beautiful design."""
     buttons = [
+        # ➕ ДОБАВЛЕНИЕ
         [InlineKeyboardButton(text="➕ Добавить наставника", callback_data="add_mentor")]
     ]
     
     if mentors:
-        buttons.append([InlineKeyboardButton(text="━━━ НАСТАВНИКИ ━━━", callback_data="none")])
+        # 📋 СПИСОК НАСТАВНИКОВ
+        buttons.append([InlineKeyboardButton(text="━━━ 👨‍🏫 НАСТАВНИКИ ━━━", callback_data="none")])
         for mentor in mentors[:10]:
             username = f"@{mentor['username']}" if mentor.get('username') else mentor.get('full_name', 'N/A')
             service = mentor.get('service_name', 'N/A')[:15]
@@ -222,6 +248,7 @@ def get_mentor_list_keyboard(mentors: List[Dict[str, Any]]) -> InlineKeyboardMar
                 callback_data=f"delete_mentor_{mentor['id']}"
             )])
     
+    # 🔙 НАВИГАЦИЯ
     buttons.append([InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -254,11 +281,16 @@ def get_broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
 
 
 def get_broadcast_type_keyboard() -> InlineKeyboardMarkup:
-    """Get broadcast type selection."""
+    """Get broadcast type selection with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Текст", callback_data="broadcast_text")],
-        [InlineKeyboardButton(text="🖼 Фото + текст", callback_data="broadcast_photo")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_menu")]
+        # 📝 ТИПЫ РАССЫЛКИ
+        [
+            InlineKeyboardButton(text="📝 Текст", callback_data="broadcast_text"),
+            InlineKeyboardButton(text="🖼 Фото + текст", callback_data="broadcast_photo")
+        ],
+        
+        # 🔙 НАВИГАЦИЯ
+        [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
 
@@ -267,12 +299,19 @@ def get_broadcast_type_keyboard() -> InlineKeyboardMarkup:
 # ============================================
 
 def get_users_management_keyboard() -> InlineKeyboardMarkup:
-    """Get users management keyboard."""
+    """Get users management keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
+        # 🔍 ПОИСК И ПРОСМОТР
         [InlineKeyboardButton(text="🔍 Найти пользователя", callback_data="find_user")],
-        [InlineKeyboardButton(text="📋 Активные", callback_data="list_active_users")],
-        [InlineKeyboardButton(text="⏳ Ожидающие", callback_data="list_pending_users")],
+        
+        # 📊 КАТЕГОРИИ ПОЛЬЗОВАТЕЛЕЙ
+        [
+            InlineKeyboardButton(text="✅ Активные", callback_data="list_active_users"),
+            InlineKeyboardButton(text="⏳ Ожидающие", callback_data="list_pending_users")
+        ],
         [InlineKeyboardButton(text="🚫 Заблокированные", callback_data="list_banned_users")],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
@@ -330,8 +369,9 @@ def get_user_list_keyboard(users: List[Dict[str, Any]], page: int = 0, per_page:
 # ============================================
 
 def get_stats_keyboard() -> InlineKeyboardMarkup:
-    """Get statistics keyboard."""
+    """Get statistics keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
+        # 📅 ПЕРИОДЫ
         [
             InlineKeyboardButton(text="📅 Сегодня", callback_data="stats_today"),
             InlineKeyboardButton(text="📆 Неделя", callback_data="stats_week")
@@ -340,7 +380,11 @@ def get_stats_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📊 Месяц", callback_data="stats_month"),
             InlineKeyboardButton(text="📈 Всё время", callback_data="stats_all")
         ],
+        
+        # 🏆 РЕЙТИНГИ
         [InlineKeyboardButton(text="🏆 Топ воркеров", callback_data="stats_top")],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
@@ -350,11 +394,16 @@ def get_stats_keyboard() -> InlineKeyboardMarkup:
 # ============================================
 
 def get_direct_payments_admin_keyboard() -> InlineKeyboardMarkup:
-    """Get direct payments admin keyboard."""
+    """Get direct payments admin keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✏️ Изменить реквизиты", callback_data="edit_requisites")],
-        [InlineKeyboardButton(text="📝 Изменить инфо", callback_data="edit_dp_info")],
-        [InlineKeyboardButton(text="👤 Изменить поддержку", callback_data="edit_support")],
+        # ⚙️ НАСТРОЙКИ ПЛАТЕЖЕЙ
+        [
+            InlineKeyboardButton(text="💳 Реквизиты", callback_data="edit_requisites"),
+            InlineKeyboardButton(text="📝 Информация", callback_data="edit_dp_info")
+        ],
+        [InlineKeyboardButton(text="👤 Поддержка", callback_data="edit_support")],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 
@@ -364,10 +413,15 @@ def get_direct_payments_admin_keyboard() -> InlineKeyboardMarkup:
 # ============================================
 
 def get_communities_admin_keyboard() -> InlineKeyboardMarkup:
-    """Get communities admin management keyboard."""
+    """Get communities admin management keyboard with beautiful design."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⏳ Заявки на модерацию", callback_data="pending_communities")],
-        [InlineKeyboardButton(text="📋 Все комьюнити", callback_data="all_communities")],
+        # 📋 УПРАВЛЕНИЕ КОМЬЮНИТИ
+        [
+            InlineKeyboardButton(text="⏳ Заявки", callback_data="pending_communities"),
+            InlineKeyboardButton(text="📋 Все комьюнити", callback_data="all_communities")
+        ],
+        
+        # 🔙 НАВИГАЦИЯ
         [InlineKeyboardButton(text="🔙 Админ меню", callback_data="admin_menu")]
     ])
 

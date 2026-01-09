@@ -236,7 +236,7 @@ async def receive_source(callback: CallbackQuery, state: FSMContext) -> None:
             pass
 
 
-@router.callback_query(F.data.startswith("approve_"))
+@router.callback_query(F.data.regexp(r"^approve_\d+$"))
 async def approve_application(callback: CallbackQuery) -> None:
     """Admin approves application."""
     user_id = int(callback.data.split("_")[1])
@@ -266,7 +266,7 @@ async def approve_application(callback: CallbackQuery) -> None:
     await callback.answer("✅ Одобрено")
 
 
-@router.callback_query(F.data.startswith("decline_"))
+@router.callback_query(F.data.regexp(r"^decline_\d+$"))
 async def decline_application(callback: CallbackQuery) -> None:
     """Admin declines application."""
     user_id = int(callback.data.split("_")[1])
@@ -285,7 +285,7 @@ async def decline_application(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "join_team")
 async def join_team(callback: CallbackQuery) -> None:
-    """User clicks Join Team - show main menu."""
+    """User clicks Join Team - show main menu with static keyboard."""
     await callback.answer()
     from handlers.user_menu import show_main_menu
     await show_main_menu(callback)

@@ -6,10 +6,16 @@ import config
 
 
 def get_main_static_keyboard() -> ReplyKeyboardMarkup:
-    """Get main static keyboard with quick access button."""
+    """Get main static keyboard with quick access buttons."""
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🏠 Главное меню")]
+            [
+                KeyboardButton(text="👤 Профиль"),
+                KeyboardButton(text="🛠 Сервисы")
+            ],
+            [
+                KeyboardButton(text="🏠 Главное меню")
+            ]
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
@@ -21,24 +27,19 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
     """Get main menu inline keyboard."""
     keyboard = [
         [
-            InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
-            InlineKeyboardButton(text="📊 Аналитика", web_app=WebAppInfo(url=config.WEBAPP_ANALYTICS))
+            InlineKeyboardButton(text="📊 Аналитика", web_app=WebAppInfo(url=config.WEBAPP_ANALYTICS)),
+            InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments")
         ],
         [
-            InlineKeyboardButton(text="🛠 Сервисы", callback_data="services"),
-            InlineKeyboardButton(text="👨‍🏫 Наставники", callback_data="choose_mentor")
+            InlineKeyboardButton(text="👨🏿‍🏫 Наставники", callback_data="choose_mentor"),
+            InlineKeyboardButton(text="👥 Комьюнити", callback_data="community")
         ],
         [
-            InlineKeyboardButton(text="💳 Прямики", callback_data="direct_payments"),
-            InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")
-        ],
-        [
-            InlineKeyboardButton(text="👥 Комьюнити", callback_data="community"),
-            InlineKeyboardButton(text="💭 Чат", url=config.CHAT_GROUP_URL)
-        ],
-        [
-            InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB)),
+            InlineKeyboardButton(text="💭 Чат", url=config.CHAT_GROUP_URL),
             InlineKeyboardButton(text="💡 Идеи", web_app=WebAppInfo(url=config.WEBAPP_IDEAS))
+        ],
+        [
+            InlineKeyboardButton(text="🌐 Хаб", web_app=WebAppInfo(url=config.WEBAPP_HUB))
         ]
     ]
 
@@ -51,8 +52,7 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
 def get_profile_keyboard() -> InlineKeyboardMarkup:
     """Get profile inline keyboard."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💰 История профитов", web_app=WebAppInfo(url=config.WEBAPP_PROFITS_HISTORY))],
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")]
     ])
 
 
@@ -97,9 +97,6 @@ def get_services_keyboard(services: List[Dict[str, Any]]) -> InlineKeyboardMarku
                 ))
         buttons.append(row)
     
-    # Простая навигация
-    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
-    
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -120,9 +117,6 @@ def get_service_detail_keyboard(service_id: int, manual_link: str = None, bot_li
             buttons.append(links_row)
         else:
             buttons.append([links_row[0]])
-    
-    # Простая навигация
-    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -153,49 +147,69 @@ def get_back_to_menu_keyboard(section: str = None) -> InlineKeyboardMarkup:
 
 
 def get_mentor_services_keyboard(services: List[str]) -> InlineKeyboardMarkup:
-    """Get mentor services selection keyboard."""
+    """Get mentor services selection keyboard with compact design."""
     buttons = []
     
-    # Группируем сервисы по 1 в ряд для ясности
-    for service in services:
-        buttons.append([InlineKeyboardButton(
-            text=f"🛠 {service}", 
-            callback_data=f"mentor_service_{service[:30]}"
-        )])
+    # Группируем сервисы по 2 в ряд для компактности
+    for i in range(0, len(services), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(services):
+                service = services[i + j]
+                # Сокращаем длинные названия
+                display_name = service[:15] + "..." if len(service) > 15 else service
+                row.append(InlineKeyboardButton(
+                    text=f"🛠 {display_name}", 
+                    callback_data=f"mentor_service_{service[:30]}"
+                ))
+        buttons.append(row)
     
-    # Простая навигация
+    # Навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_mentor_selection_keyboard(mentors: List[Dict[str, Any]], service_name: str) -> InlineKeyboardMarkup:
-    """Get mentor selection keyboard for specific service."""
+    """Get mentor selection keyboard with compact design."""
     buttons = []
     
+    # Группируем наставников по 1 в ряд, но с компактной информацией
     for mentor in mentors:
         name = mentor.get('full_name', 'Наставник')
-        buttons.append([
-            InlineKeyboardButton(text=f"👨‍🏫 {name}", callback_data=f"select_mentor_{mentor['id']}")
-        ])
+        # Сокращаем имя если слишком длинное
+        display_name = name[:20] + "..." if len(name) > 20 else name
+        percent = mentor.get('percent', 0)
+        rating = mentor.get('rating', 0)
+        
+        buttons.append([InlineKeyboardButton(
+            text=f"👨‍🏫 {display_name} • {percent}% • ⭐{rating:.0f}", 
+            callback_data=f"select_mentor_{mentor['id']}"
+        )])
     
-    # Простая навигация
-    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    # Навигация
+    buttons.append([
+        InlineKeyboardButton(text="🔙 К сервисам", callback_data="choose_mentor"),
+        InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
+    ])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_mentor_detail_keyboard(mentor_id: int, has_mentor: bool, service_name: str) -> InlineKeyboardMarkup:
-    """Get mentor detail keyboard."""
+    """Get mentor detail keyboard with compact design."""
     buttons = []
     
     if has_mentor:
-        buttons.append([InlineKeyboardButton(text="❌ Отказаться от наставника", callback_data="remove_mentor")])
+        buttons.append([InlineKeyboardButton(text="❌ Отказаться", callback_data="remove_mentor")])
     else:
-        buttons.append([InlineKeyboardButton(text="✅ Выбрать наставника", callback_data=f"confirm_mentor_{mentor_id}")])
+        buttons.append([InlineKeyboardButton(text="✅ Выбрать", callback_data=f"confirm_mentor_{mentor_id}")])
     
-    # Простая навигация
-    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    # Навигация
+    buttons.append([
+        InlineKeyboardButton(text="🔙 К сервисам", callback_data="choose_mentor"),
+        InlineKeyboardButton(text="🏠 Меню", callback_data="main_menu")
+    ])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -224,53 +238,55 @@ def get_referral_keyboard(ref_link: str, website_url: str) -> InlineKeyboardMark
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Мои рефералы", web_app=WebAppInfo(url=config.WEBAPP_REFERRALS))],
         [InlineKeyboardButton(text="📤 Поделиться ссылкой", switch_inline_query=f"Присоединяйся к команде! {ref_link}")],
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🔙 К профилю", callback_data="profile")]
     ])
 
 
 def get_communities_keyboard(communities: List[Dict[str, Any]], user_profit: float) -> InlineKeyboardMarkup:
-    """Get communities list keyboard."""
+    """Get communities list keyboard with compact design."""
     buttons = []
     
-    # Communities list
+    # Communities list - группируем по 1 в ряд, но с компактной информацией
     for community in communities:
         status_icon = "✅" if community.get("is_member") else "👥"
+        name = community['name']
+        # Сокращаем название если слишком длинное
+        display_name = name[:25] + "..." if len(name) > 25 else name
+        members = community['members_count']
+        
         buttons.append([
             InlineKeyboardButton(
-                text=f"{status_icon} {community['name']} ({community['members_count']})",
+                text=f"{status_icon} {display_name} ({members})",
                 callback_data=f"community_view_{community['id']}"
             )
         ])
     
-    # Create community button (if user has enough profit)
+    # Create community button (if user has enough profit) - более компактно
     if user_profit >= 50000:
-        buttons.append([InlineKeyboardButton(text="➕ Создать комьюнити", callback_data="community_create")])
+        buttons.append([InlineKeyboardButton(text="➕ Создать", callback_data="community_create")])
     
+    # Навигация
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_community_detail_keyboard(community_id: int, is_member: bool, is_creator: bool = False) -> InlineKeyboardMarkup:
-    """Get community detail keyboard."""
+    """Get community detail keyboard with compact design."""
     buttons = []
     
     if is_member:
         buttons.append([InlineKeyboardButton(text="❌ Покинуть", callback_data=f"community_leave_{community_id}")])
     else:
-        buttons.append([InlineKeyboardButton(text="✅ Присоединиться", callback_data=f"community_join_{community_id}")])
+        buttons.append([InlineKeyboardButton(text="✅ Войти", callback_data=f"community_join_{community_id}")])
     
-    buttons.append([
-        InlineKeyboardButton(text="🔙 К списку", callback_data="community"),
-        InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")
-    ])
+    buttons.append([InlineKeyboardButton(text="🔙 К списку", callback_data="community")])
     
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_community_create_keyboard() -> InlineKeyboardMarkup:
-    """Get community creation keyboard."""
+    """Get community creation keyboard with compact design."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 К списку", callback_data="community")],
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+        [InlineKeyboardButton(text="🔙 К списку", callback_data="community")]
     ])

@@ -77,26 +77,41 @@ async def show_pending_communities(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("review_community_"))
 async def review_community(callback: CallbackQuery) -> None:
     """Review specific community."""
+    logger.info(f"Review community handler called with data: {callback.data}")
+    
     if callback.from_user.id not in ADMIN_IDS:
+        logger.warning(f"Non-admin user {callback.from_user.id} tried to review community")
         await callback.answer("❌ Нет доступа", show_alert=True)
         return
     
     await callback.answer()
     
     try:
-        community_id = int(callback.data.split("_")[2])
-    except (IndexError, ValueError):
+        # callback_data format: review_community_123
+        parts = callback.data.split("_")
+        community_id = int(parts[2])
+        logger.info(f"Extracted community_id: {community_id}")
+    except (IndexError, ValueError) as e:
+        logger.error(f"Error extracting community_id from {callback.data}: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
         return
     
     community = await get_community(community_id)
+    logger.info(f"Community data: {community}")
+    
     if not community:
+        logger.error(f"Community {community_id} not found")
         await callback.answer("❌ Комьюнити не найдено", show_alert=True)
         return
     
-    creator_info = community.get('creator', {})
+    creator_info = community.get('creator', {}) or {}
     creator_name = creator_info.get('full_name', 'Неизвестный')
     creator_username = f"@{creator_info.get('username')}" if creator_info.get('username') else "Нет username"
+    
+    # Format created_at safely
+    created_at = community.get('created_at', '')
+    if created_at and len(created_at) > 16:
+        created_at = created_at[:16]
     
     text = (
         f"{header('Модерация комьюнити', '📝')}\n\n"
@@ -106,7 +121,7 @@ async def review_community(callback: CallbackQuery) -> None:
         f"👤 <b>Создатель:</b> {creator_name}\n"
         f"🆔 <b>Username:</b> {creator_username}\n"
         f"🆔 <b>ID:</b> <code>{community['creator_id']}</code>\n\n"
-        f"📅 <b>Дата заявки:</b> {community['created_at'][:16]}\n\n"
+        f"📅 <b>Дата заявки:</b> {created_at}\n\n"
         f"❓ <b>Одобрить или отклонить заявку?</b>"
     )
     
@@ -120,6 +135,8 @@ async def review_community(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("approve_community_"))
 async def approve_community_handler(callback: CallbackQuery) -> None:
     """Approve community."""
+    logger.info(f"Approve community handler called with data: {callback.data}")
+    
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("❌ Нет доступа", show_alert=True)
         return
@@ -128,53 +145,63 @@ async def approve_community_handler(callback: CallbackQuery) -> None:
     
     try:
         community_id = int(callback.data.split("_")[2])
-    except (IndexError, ValueError):
+        logger.info(f"Extracted community_id: {community_id}")
+    except (IndexError, ValueError) as e:
+        logger.error(f"Error extracting community_id: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
         return
     
     community = await get_community(community_id)
     if not community:
+        logger.error(f"Community {community_id} not found")
         await callback.answer("❌ Комьюнити не найдено", show_alert=True)
         return
     
+    logger.info(f"Approving community: {community['name']}")
     success = await approve_community(community_id, callback.from_user.id)
+    logger.info(f"Approve result: {success}")
     
     if success:
         # Log admin action
-        await log_admin_action(
-            callback.from_user.id,
-            callback.from_user.username or callback.from_user.full_name,
-            "approve_community",
-            f"Одобрено комьюнити: {community['name']}",
-            community['creator_id']
-        )
+        try:
+            await log_admin_action(
+                callback.from_user.id,
+                callback.from_user.username or callback.from_user.full_name,
+                "approve_community",
+                f"Одобрено комьюнити: {community['name']}",
+                community['creator_id']
+            )
+        except Exception as e:
+            logger.error(f"Error logging admin action: {e}")
         
         # Notify creator
-        await create_notification(
-            community['creator_id'],
-            "community_approved",
-            "Комьюнити одобрено! 🎉",
-            f"Ваше комьюнити '{community['name']}' было одобрено и теперь доступно всем пользователям!"
-        )
+        try:
+            await create_notification(
+                community['creator_id'],
+                "community_approved",
+                "Комьюнити одобрено! 🎉",
+                f"Ваше комьюнити '{community['name']}' было одобрено!"
+            )
+        except Exception as e:
+            logger.error(f"Error creating notification: {e}")
         
         # Notify creator via bot message
         try:
             await callback.bot.send_message(
                 community['creator_id'],
                 f"🎉 <b>Отличные новости!</b>\n\n"
-                f"Ваше комьюнити <b>'{community['name']}'</b> было одобрено администратором!\n\n"
-                f"Теперь оно доступно всем пользователям в разделе 'Комьюнити'.\n"
-                f"Желаем успехов в развитии сообщества! 🚀"
+                f"Ваше комьюнити <b>'{community['name']}'</b> было одобрено!\n\n"
+                f"Теперь оно доступно всем пользователям в разделе 'Комьюнити'."
             )
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Error sending message to creator: {e}")
         
+        creator_info = community.get('creator', {}) or {}
         text = (
             f"✅ <b>Комьюнити одобрено!</b>\n\n"
             f"📝 <b>Название:</b> {community['name']}\n"
-            f"👤 <b>Создатель:</b> {community.get('creator', {}).get('full_name', 'Неизвестный')}\n\n"
-            f"Комьюнити теперь доступно всем пользователям.\n"
-            f"Создатель получил уведомление об одобрении."
+            f"👤 <b>Создатель:</b> {creator_info.get('full_name', 'Неизвестный')}\n\n"
+            f"Комьюнити теперь доступно всем пользователям."
         )
         
         await edit_with_brand(
@@ -183,12 +210,15 @@ async def approve_community_handler(callback: CallbackQuery) -> None:
             image_path=BRAND_IMAGE_COMMUNITY
         )
     else:
+        logger.error(f"Failed to approve community {community_id}")
         await callback.answer("❌ Ошибка при одобрении", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("reject_community_"))
 async def reject_community_handler(callback: CallbackQuery) -> None:
     """Reject community."""
+    logger.info(f"Reject community handler called with data: {callback.data}")
+    
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("❌ Нет доступа", show_alert=True)
         return
@@ -197,16 +227,21 @@ async def reject_community_handler(callback: CallbackQuery) -> None:
     
     try:
         community_id = int(callback.data.split("_")[2])
-    except (IndexError, ValueError):
+        logger.info(f"Extracted community_id: {community_id}")
+    except (IndexError, ValueError) as e:
+        logger.error(f"Error extracting community_id: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
         return
     
     community = await get_community(community_id)
     if not community:
+        logger.error(f"Community {community_id} not found")
         await callback.answer("❌ Комьюнити не найдено", show_alert=True)
         return
     
+    logger.info(f"Rejecting community: {community['name']}")
     success = await reject_community(community_id, callback.from_user.id)
+    logger.info(f"Reject result: {success}")
     
     if success:
         # Log admin action

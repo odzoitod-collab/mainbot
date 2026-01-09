@@ -134,7 +134,9 @@ async def show_main_menu(event: TelegramObject, db_user: dict = None) -> None:
     if isinstance(event, CallbackQuery):
         await edit_with_brand(event, text, reply_markup=inline_kb, image_path=BRAND_IMAGE_MAIN_MENU)
     else:
-        await answer_with_brand(event, text, reply_markup=inline_kb, image_path=BRAND_IMAGE_MAIN_MENU)
+        # For messages, set static keyboard separately
+        static_kb = get_main_static_keyboard()
+        await answer_with_brand(event, text, reply_markup=inline_kb, image_path=BRAND_IMAGE_MAIN_MENU, static_keyboard=static_kb)
 
 
 @router.callback_query(F.data == "main_menu")
@@ -145,15 +147,74 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
 
 @router.message(F.text == "🏠 Главное меню")
 async def text_main_menu(message: Message) -> None:
-    """Handle static keyboard main menu button."""
-    await show_main_menu(message)
+    """Handle static keyboard main menu button - works like /start."""
+    # Get user from database
+    user = await get_user(message.from_user.id)
+    
+    if user and user["status"] == "active":
+        # Set static keyboard and show main menu
+        static_kb = get_main_static_keyboard()
+        await answer_with_brand(
+            message, 
+            header('Главное меню', '💠'), 
+            reply_markup=get_main_menu_keyboard(0, message.from_user.id in ADMIN_IDS), 
+            image_path=BRAND_IMAGE_MAIN_MENU,
+            static_keyboard=static_kb
+        )
+        # Update user activity
+        asyncio.create_task(update_user_activity(message.from_user.id))
+    elif user and user["status"] == "pending":
+        await message.answer(
+            "⏳ <b>Ваша анкета на рассмотрении</b>\n\n"
+            "⏱ Ждите одобрения администратора."
+        )
+    elif user and user["status"] == "banned":
+        await message.answer("🚫 <b>Доступ запрещен</b>")
+    else:
+        # User not found - suggest registration
+        await message.answer(
+            "❌ <b>Пользователь не найден</b>\n\n"
+            "Для начала работы нажмите /start"
+        )
+
+
+@router.message(F.text == "👤 Профиль")
+async def text_profile(message: Message) -> None:
+    """Handle static keyboard profile button."""
+    # Parallel data loading
+    data = await get_profile_data(message.from_user.id)
+    
+    if not data["user"]:
+        await message.answer("❌ Ошибка")
+        return
+    
+    text = _build_profile_text(data["user"], data["stats"], data["position"], data["mentor"])
+    static_kb = get_main_static_keyboard()
+    await answer_with_brand(message, text, reply_markup=get_profile_keyboard(), image_path=BRAND_IMAGE_PROFILE, static_keyboard=static_kb)
+
+
+@router.message(F.text == "🛠 Сервисы")
+async def text_services(message: Message) -> None:
+    """Handle static keyboard services button."""
+    services = await get_services()
+    
+    text = (
+        f"{header('Сервисы', '🛠')}\n\n"
+        f"🎯 <b>Рабочие инструменты для заработка</b>\n\n"
+        f"Выбери нужный сервис из списка ниже.\n"
+        f"Каждый сервис содержит мануалы и боты для работы."
+    )
+    
+    if not services:
+        text += "\n\n<i>Пока нет доступных сервисов.</i>"
+    
+    static_kb = get_main_static_keyboard()
+    await answer_with_brand(message, text, reply_markup=get_services_keyboard(services), image_path=BRAND_IMAGE_SERVICES, static_keyboard=static_kb)
 
 
 @router.message(F.text == "/menu")
 async def cmd_menu(message: Message) -> None:
     """Handle /menu command and set static keyboard."""
-    static_kb = get_main_static_keyboard()
-    await message.answer("🔧 Статическая клавиатура установлена!", reply_markup=static_kb)
     await show_main_menu(message)
 
 
@@ -267,21 +328,18 @@ async def show_community(callback: CallbackQuery) -> None:
     user_stats = await get_user_stats(callback.from_user.id)
     communities = await get_communities_for_user(callback.from_user.id)
     
-    text = (
-        f"{header('Комьюнити', '👥')}\n\n"
-        f"🌟 <b>Присоединяйся к сообществам единомышленников!</b>\n\n"
-        f"Здесь ты можешь найти команды по интересам,\n"
-        f"обмениваться опытом и развиваться вместе.\n\n"
-    )
+    text = f"{header('Комьюнити', '👥')}\n\n"
     
     if user_stats.get('total_profit', 0) >= 50000:
-        text += f"💰 У тебя {user_stats['total_profit']:.0f} RUB - можешь создать своё комьюнити!\n\n"
+        text += f"💰 {user_stats['total_profit']:.0f} RUB - можешь создать комьюнити!\n\n"
     else:
         needed = 50000 - user_stats.get('total_profit', 0)
-        text += f"💰 Для создания комьюнити нужно {needed:.0f} RUB профита\n\n"
+        text += f"💰 Нужно ещё {needed:.0f} RUB для создания\n\n"
     
     if not communities:
         text += "<i>Пока нет доступных комьюнити.</i>"
+    else:
+        text += f"📋 Доступно: {len(communities)} комьюнити"
     
     await edit_with_brand(
         callback, text, 
@@ -296,12 +354,7 @@ async def show_mentors(callback: CallbackQuery) -> None:
     
     services = await get_mentor_services()
     
-    text = (
-        f"{header('Наставники', '👨‍🏫')}\n\n"
-        f"🎓 <b>Выбери наставника для обучения</b>\n\n"
-        f"Наставники помогут тебе освоить сервисы\n"
-        f"и увеличить доходы. Выбери направление:"
-    )
+    text = f"{header('Наставники', '👨‍🏫')}\n\n🎓 Выбери направление:"
     
     if not services:
         text += "\n\n<i>Пока нет доступных наставников.</i>"
@@ -322,7 +375,7 @@ async def show_mentors_by_service(callback: CallbackQuery) -> None:
         await callback.answer("❌ Нет наставников", show_alert=True)
         return
     
-    text = f"👨‍🏫 <b>Наставники: {service_name}</b>"
+    text = f"👨‍🏫 <b>{service_name}</b>\n\nВыбери наставника:"
     await edit_with_brand(callback, text, reply_markup=get_mentor_selection_keyboard(mentors, service_name))
 
 

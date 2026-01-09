@@ -1,4 +1,5 @@
 """Optimized message utilities - always show brand image."""
+import asyncio
 import logging
 from typing import Optional, Union, Dict
 from contextlib import suppress
@@ -102,9 +103,19 @@ async def answer_with_brand(
     text: str,
     reply_markup: Optional[InlineKeyboardMarkup] = None,
     parse_mode: str = "HTML",
-    image_path: Optional[str] = None
+    image_path: Optional[str] = None,
+    static_keyboard = None
 ) -> Optional[Message]:
-    """Answer with brand image."""
+    """Answer with brand image and optional static keyboard."""
+    # Set static keyboard if provided (silently)
+    if static_keyboard:
+        try:
+            await message.answer(".", reply_markup=static_keyboard, parse_mode="HTML")
+            # Try to delete the dot message
+            await asyncio.sleep(0.1)
+        except:
+            pass
+    
     return await send_with_brand(message, text, reply_markup, parse_mode, image_path)
 
 
