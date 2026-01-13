@@ -24,7 +24,8 @@ from database import (
     assign_mentor, remove_mentor, update_user_activity, get_direct_payment_settings,
     get_referral_stats, get_user_position, get_profile_data,
     get_communities_for_user, get_community, create_community_request,
-    join_community, leave_community, is_community_member
+    join_community, leave_community, is_community_member, is_user_mentor,
+    get_mentor_channel_info
 )
 from utils.messages import answer_with_brand, edit_with_brand
 from utils.design import header, profit_card
@@ -56,11 +57,15 @@ def _build_profile_text(user: dict, stats: dict, position: dict, mentor: Optiona
     """Build profile text."""
     mentor_name = "Отсутствует"
     if mentor:
-        mentor_name = f"@{mentor['username']}" if mentor.get('username') else mentor.get('full_name', 'Наставник')
+        # Для наставника показываем тег, если есть
+        mentor_name = mentor.get('user_tag', f"@{mentor['username']}" if mentor.get('username') else mentor.get('full_name', 'Наставник'))
     
+    # Показываем тег пользователя
+    user_tag = user.get('user_tag', '#irl_???')
     username = f"@{user['username']}" if user.get('username') else "—"
     
     return (
+        f"🏷 <b>Ваш тег:</b> {user_tag}\n\n"
         f"👤 <b>Информация о профиле:</b>\n"
         f"┣ ID: <code>{user['id']}</code>\n"
         f"┣ Никнейм: {username}\n"
@@ -71,7 +76,8 @@ def _build_profile_text(user: dict, stats: dict, position: dict, mentor: Optiona
         f"┣ За Неделю: {stats.get('week_profit', 0):.2f} RUB\n"
         f"┣ За Месяц: {stats.get('month_profit', 0):.2f} RUB\n"
         f"┣ Рекорд: {stats.get('max_profit', 0):.2f} RUB\n"
-        f"┗ Место в топе: {position['overall_rank']} из {position['total_users']}"
+        f"┗ Место в топе: {position['overall_rank']} из {position['total_users']}\n\n"
+        f"🔧 Сменить тег: /changetag новый_тег"
     )
 
 
@@ -125,11 +131,12 @@ async def show_main_menu(event: TelegramObject, db_user: dict = None) -> None:
     asyncio.create_task(update_user_activity(user.id))
     
     is_admin = user.id in ADMIN_IDS
+    is_mentor = await is_user_mentor(user.id)
     
     # Простой текст главного меню
     text = header('Главное меню', '💠')
     
-    inline_kb = get_main_menu_keyboard(0, is_admin)
+    inline_kb = get_main_menu_keyboard(0, is_admin, is_mentor)
     
     if isinstance(event, CallbackQuery):
         await edit_with_brand(event, text, reply_markup=inline_kb, image_path=BRAND_IMAGE_MAIN_MENU)
@@ -154,10 +161,11 @@ async def text_main_menu(message: Message) -> None:
     if user and user["status"] == "active":
         # Set static keyboard and show main menu
         static_kb = get_main_static_keyboard()
+        is_mentor = await is_user_mentor(message.from_user.id)
         await answer_with_brand(
             message, 
             header('Главное меню', '💠'), 
-            reply_markup=get_main_menu_keyboard(0, message.from_user.id in ADMIN_IDS), 
+            reply_markup=get_main_menu_keyboard(0, message.from_user.id in ADMIN_IDS, is_mentor), 
             image_path=BRAND_IMAGE_MAIN_MENU,
             static_keyboard=static_kb
         )
@@ -390,9 +398,10 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
         return
     
     # Parallel fetch
-    mentor, current = await asyncio.gather(
+    mentor, current, channel_info = await asyncio.gather(
         get_mentor(mentor_id),
-        get_user_mentor(callback.from_user.id)
+        get_user_mentor(callback.from_user.id),
+        get_mentor_channel_info(mentor.get('user_id') if mentor else None) if mentor else asyncio.sleep(0)
     )
     
     if not mentor:
@@ -409,6 +418,14 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
         f"⭐ Рейтинг: {mentor.get('rating', 0):.0f}\n"
         f"👥 Учеников: {mentor.get('students_count', 0)}"
     )
+    
+    # Add channel info if available
+    if channel_info and channel_info.get('telegram_channel'):
+        text += f"\n\n📺 <b>ТГК наставника:</b> {channel_info['telegram_channel']}"
+        if channel_info.get('channel_description'):
+            text += f"\n📝 {channel_info['channel_description']}"
+        if channel_info.get('channel_invite_link'):
+            text += f"\n🔗 {channel_info['channel_invite_link']}"
     
     if current and current.get("id") != mentor_id:
         text += "\n\n⚠️ У вас уже есть наставник."

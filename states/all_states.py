@@ -69,3 +69,17 @@ class CommunityCreateState(StatesGroup):
     waiting_for_description = State()
     waiting_for_chat_link = State()
     waiting_for_confirm = State()
+
+class MentorBroadcastState(StatesGroup):
+    """States for mentor broadcast flow."""
+    waiting_for_message = State()
+    waiting_for_photo = State()
+    waiting_for_confirm = State()
+
+
+class MentorChannelState(StatesGroup):
+    """States for mentor channel management flow."""
+    waiting_for_channel_name = State()
+    waiting_for_channel_description = State()
+    waiting_for_channel_link = State()
+    waiting_for_confirm = State()

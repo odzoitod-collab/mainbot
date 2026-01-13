@@ -2,6 +2,7 @@
 from handlers.registration import router as registration_router
 from handlers.user_menu import router as user_menu_router
 from handlers.chat_commands import router as chat_commands_router
+from handlers.mentor_panel import router as mentor_panel_router
 from handlers.admin_profit import router as admin_profit_router
 from handlers.admin_manage import router as admin_manage_router
 from handlers.admin_mentors import router as admin_mentors_router
@@ -15,6 +16,7 @@ __all__ = [
     "registration_router",
     "user_menu_router", 
     "chat_commands_router",
+    "mentor_panel_router",
     "admin_profit_router",
     "admin_manage_router",
     "admin_mentors_router",

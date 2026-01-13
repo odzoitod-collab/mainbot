@@ -49,16 +49,29 @@ WEBAPP_IDEAS: str = "https://ideas-omega-three.vercel.app/"
 # ============================================
 # IMAGES
 # ============================================
-BRAND_IMAGE_WELCOME: str = "images/главное.jpg"        # Регистрация
-BRAND_IMAGE_LOGO: str = "images/главное.jpg"           # Всё остальное по умолчанию
+BRAND_IMAGE_WELCOME: str = "images/ирл.jpg"            # Регистрация
+BRAND_IMAGE_LOGO: str = "images/ирл.jpg"               # Команды в чате по умолчанию
 BRAND_IMAGE_PROFIT: str = "images/профиты.jpg"         # Уведомления о профитах
 
 # Изображения для разделов бота
-BRAND_IMAGE_MAIN_MENU: str = "images/главное.jpg"      # Главное меню
-BRAND_IMAGE_PROFILE: str = "images/профиль.jpg"        # Профиль
-BRAND_IMAGE_SERVICES: str = "images/сервисы.jpg"       # Сервисы
-BRAND_IMAGE_MENTORS: str = "images/наставники.jpg"     # Наставники
-BRAND_IMAGE_REFERRALS: str = "images/рефералка.jpg"    # Рефералы
+BRAND_IMAGE_MAIN_MENU: str = "images/главное меню.jpg" # Главное меню
+BRAND_IMAGE_PROFILE: str = "images/профиль.JPG"        # Профиль
+BRAND_IMAGE_SERVICES: str = "images/сервисы.JPG"       # Сервисы
+BRAND_IMAGE_MENTORS: str = "images/главное меню.jpg"   # Наставники
+BRAND_IMAGE_REFERRALS: str = "images/профиль.JPG"      # Рефералы
 BRAND_IMAGE_PROFITS: str = "images/профиты.jpg"        # История профитов
 BRAND_IMAGE_PAYMENTS: str = "images/Реквизиты.jpg"     # Прямые платежи
-BRAND_IMAGE_COMMUNITY: str = "images/сообщество.jpg"   # Сообщество/ресурсы
+BRAND_IMAGE_COMMUNITY: str = "images/главное меню.jpg" # Сообщество/ресурсы
+
+# ============================================
+# RESTART SYSTEM
+# ============================================
+RESTART_FLAG_FILE: str = "restart_flag.txt"
+RESTART_WEBHOOK_URL: str = None  # URL для webhook перезапуска (если используется)
+RESTART_COMMAND: str = None      # Команда для перезапуска (если используется)
+
+# ============================================
+# BROADCAST SYSTEM
+# ============================================
+BROADCAST_DELAY: float = 0.05    # Задержка между сообщениями в рассылке (секунды)
+BROADCAST_BATCH_SIZE: int = 20   # Размер батча для обновления прогресса

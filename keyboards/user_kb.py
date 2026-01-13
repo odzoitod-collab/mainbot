@@ -23,7 +23,7 @@ def get_main_static_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False) -> InlineKeyboardMarkup:
+def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False, is_mentor: bool = False) -> InlineKeyboardMarkup:
     """Get main menu inline keyboard."""
     keyboard = [
         [
@@ -43,8 +43,18 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
         ]
     ]
 
+    # Special panels
+    special_panels = []
     if is_admin:
-        keyboard.append([InlineKeyboardButton(text="🛡 Админ меню", callback_data="admin_menu")])
+        special_panels.append(InlineKeyboardButton(text="🛡 Админ меню", callback_data="admin_menu"))
+    if is_mentor:
+        special_panels.append(InlineKeyboardButton(text="👨‍🏫 Панель наставника", callback_data="mentor_panel"))
+    
+    if special_panels:
+        if len(special_panels) == 2:
+            keyboard.append(special_panels)
+        else:
+            keyboard.append([special_panels[0]])
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -52,6 +62,7 @@ def get_main_menu_keyboard(unread_notifications: int = 0, is_admin: bool = False
 def get_profile_keyboard() -> InlineKeyboardMarkup:
     """Get profile inline keyboard."""
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏷 Сменить тег", callback_data="change_tag_menu")],
         [InlineKeyboardButton(text="🔗 Рефералы", callback_data="referral_link")]
     ])
 

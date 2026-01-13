@@ -110,8 +110,8 @@ async def answer_with_brand(
     # Set static keyboard only in private chats (not in groups)
     if static_keyboard and message.chat.type == "private":
         try:
-            await message.answer(".", reply_markup=static_keyboard, parse_mode="HTML")
-            # Try to delete the dot message
+            await message.answer("📱", reply_markup=static_keyboard, parse_mode="HTML")
+            # Try to delete the phone message
             await asyncio.sleep(0.1)
         except:
             pass

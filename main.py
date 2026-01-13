@@ -47,6 +47,17 @@ async def main() -> None:
         session=session
     )
     
+    # Initialize restart manager
+    from utils.restart import RestartManager
+    restart_manager = RestartManager(bot)
+    
+    # Initialize mentor broadcast manager
+    from utils.mentor_broadcast import init_broadcast_manager, start_broadcast_manager
+    init_broadcast_manager(bot)
+    
+    # Check for restart flag from previous session
+    await restart_manager.check_and_handle_restart_flag()
+    
     dp = Dispatcher()
     
     # Middlewares (order matters - throttling first)
@@ -84,12 +95,13 @@ async def main() -> None:
         chat_commands_router, registration_router, user_menu_router,
         admin_profit_router, admin_manage_router, admin_mentors_router,
         admin_broadcast_router, admin_close_router, admin_direct_payments_router,
-        community_create_router, admin_communities_router
+        community_create_router, admin_communities_router, mentor_panel_router
     )
     
     dp.include_router(chat_commands_router)
     dp.include_router(registration_router)
     dp.include_router(user_menu_router)
+    dp.include_router(mentor_panel_router)
     dp.include_router(community_create_router)
     dp.include_router(admin_profit_router)
     dp.include_router(admin_manage_router)
@@ -104,6 +116,10 @@ async def main() -> None:
     try:
         # Drop pending updates for faster start
         await bot.delete_webhook(drop_pending_updates=True)
+        
+        # Start mentor broadcast manager
+        asyncio.create_task(start_broadcast_manager())
+        
         await dp.start_polling(
             bot,
             allowed_updates=dp.resolve_used_update_types(),

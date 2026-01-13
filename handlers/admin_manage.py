@@ -52,8 +52,9 @@ async def show_worker_payouts(callback: CallbackQuery) -> None:
     total = sum(item['total_unpaid'] for item in summary)
     lines = [f"💸 <b>ОЖИДАЮЩИЕ ВЫПЛАТЫ ВОРКЕРАМ</b>\n\n💰 Всего: {total:.2f} RUB\n"]
     for item in summary[:10]:
-        username = f"@{item['username']}" if item['username'] else item['full_name']
-        lines.append(f"👤 {username} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
+        # Показываем тег вместо имени
+        display_name = item.get('user_tag', f"@{item['username']}" if item['username'] else item['full_name'])
+        lines.append(f"🏷 {display_name} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
     
     await edit_with_brand(callback, "\n".join(lines), reply_markup=get_payout_keyboard(summary))
 
@@ -72,8 +73,9 @@ async def show_referral_payouts(callback: CallbackQuery) -> None:
     total = sum(item['total_unpaid'] for item in summary)
     lines = [f"🔗 <b>ОЖИДАЮЩИЕ РЕФЕРАЛЬНЫЕ ВЫПЛАТЫ</b>\n\n💰 Всего: {total:.2f} RUB\n"]
     for item in summary[:10]:
-        username = f"@{item['username']}" if item['username'] else item['full_name']
-        lines.append(f"👤 {username} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
+        # Показываем тег вместо имени для рефералов
+        display_name = item.get('referrer_tag', f"@{item['referrer_username']}" if item.get('referrer_username') else item.get('referrer_name', 'N/A'))
+        lines.append(f"🏷 {display_name} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
     
     await edit_with_brand(callback, "\n".join(lines), reply_markup=get_referral_payout_keyboard(summary))
 
@@ -92,8 +94,9 @@ async def show_mentor_payouts(callback: CallbackQuery) -> None:
     total = sum(item['total_unpaid'] for item in summary)
     lines = [f"👨‍🏫 <b>ОЖИДАЮЩИЕ ВЫПЛАТЫ НАСТАВНИКАМ</b>\n\n💰 Всего: {total:.2f} RUB\n"]
     for item in summary[:10]:
-        username = f"@{item['username']}" if item['username'] else item['full_name']
-        lines.append(f"👤 {username} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
+        # Показываем тег вместо имени для наставников
+        display_name = item.get('mentor_tag', f"@{item['mentor_username']}" if item.get('mentor_username') else item.get('mentor_name', 'N/A'))
+        lines.append(f"🏷 {display_name} • {item['total_unpaid']:.0f} ₽ ({item['count']})")
     
     await edit_with_brand(callback, "\n".join(lines), reply_markup=get_mentor_payout_keyboard(summary))
 
@@ -418,8 +421,9 @@ async def show_stats_period(callback: CallbackQuery) -> None:
         medals = ["🥇", "🥈", "🥉"]
         for i, w in enumerate(top):
             medal = medals[i] if i < 3 else f"{i+1}."
-            username = f"@{w['username']}" if w.get('username') else w.get('full_name', 'N/A')
-            lines.append(f"{medal} {username} • {w['total_profit']:.0f} ₽")
+            # Показываем тег вместо имени в топе
+            display_name = w.get('user_tag', f"@{w['username']}" if w.get('username') else w.get('full_name', 'N/A'))
+            lines.append(f"{medal} {display_name} • {w['total_profit']:.0f} ₽")
         
         from utils.messages import edit_with_brand
         await edit_with_brand(callback, "\n".join(lines), reply_markup=get_back_to_admin_keyboard())

@@ -171,14 +171,48 @@ async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
 async def create_user(user_id: int, username: str, full_name: str,
                       experience_text: Optional[str], source_text: str,
                       referrer_id: Optional[int] = None) -> None:
-    """Create new user."""
+    """Create new user with auto-generated tag."""
     data = {
         "id": user_id, "username": username, "full_name": full_name,
         "experience_text": experience_text, "source_text": source_text, "status": "pending"
     }
     if referrer_id:
         data["referrer_id"] = referrer_id
+    
+    # Тег будет автоматически назначен триггером в базе данных
     get_db().table("users").insert(data).execute()
+
+
+async def update_user_tag(user_id: int, new_tag: str) -> bool:
+    """Update user tag if it's available."""
+    try:
+        # Проверяем, что тег не занят
+        existing = get_db().table("users").select("id").eq("user_tag", new_tag).execute()
+        if existing.data:
+            return False  # Тег уже занят
+        
+        # Обновляем тег
+        get_db().table("users").update({"user_tag": new_tag}).eq("id", user_id).execute()
+        cache.delete(f"user:{user_id}")
+        return True
+    except:
+        return False
+
+
+async def get_user_by_tag(tag: str) -> Optional[Dict[str, Any]]:
+    """Get user by tag."""
+    result = get_db().table("users").select("*").eq("user_tag", tag).execute()
+    return result.data[0] if result.data else None
+
+
+async def is_tag_available(tag: str, exclude_user_id: Optional[int] = None) -> bool:
+    """Check if tag is available."""
+    query = get_db().table("users").select("id").eq("user_tag", tag)
+    if exclude_user_id:
+        query = query.neq("id", exclude_user_id)
+    
+    result = query.execute()
+    return len(result.data) == 0
 
 
 async def get_user_referrer(user_id: int) -> Optional[Dict[str, Any]]:
@@ -834,3 +868,208 @@ async def get_team_stats_by_period(period: str) -> Dict[str, Any]:
         "active_workers": active_workers,
         "avg_profit": avg_profit
     }
+
+
+# ============================================
+# MENTOR PANEL FUNCTIONS
+# ============================================
+
+async def is_user_mentor(user_id: int) -> bool:
+    """Check if user is an active mentor."""
+    result = get_db().rpc("is_user_mentor", {"user_id_param": user_id}).execute()
+    return result.data if result.data is not None else False
+
+
+async def get_mentor_students(mentor_user_id: int) -> List[Dict[str, Any]]:
+    """Get mentor's students with statistics."""
+    result = get_db().rpc("get_mentor_students", {"mentor_user_id_param": mentor_user_id}).execute()
+    return result.data or []
+
+
+async def get_mentor_stats(mentor_user_id: int) -> Dict[str, Any]:
+    """Get mentor statistics."""
+    result = get_db().rpc("get_mentor_stats", {"mentor_user_id_param": mentor_user_id}).execute()
+    if result.data and len(result.data) > 0:
+        return result.data[0]
+    return {
+        "total_students": 0,
+        "active_students": 0,
+        "total_earned": 0,
+        "this_month_earned": 0,
+        "avg_student_profit": 0,
+        "top_student_profit": 0
+    }
+
+
+async def update_mentor_channel(mentor_user_id: int, channel_name: str, description: str, invite_link: str) -> bool:
+    """Update mentor's Telegram channel info."""
+    try:
+        result = get_db().table("mentors").update({
+            "telegram_channel": channel_name,
+            "channel_description": description,
+            "channel_invite_link": invite_link
+        }).eq("user_id", mentor_user_id).execute()
+        
+        # Clear mentor cache
+        cache.clear_prefix("mentors")
+        return len(result.data) > 0
+    except Exception as e:
+        logger.error(f"Error updating mentor channel: {e}")
+        return False
+
+
+async def get_mentor_channel_info(mentor_user_id: int) -> Optional[Dict[str, Any]]:
+    """Get mentor's channel information."""
+    try:
+        result = get_db().table("mentors").select(
+            "telegram_channel, channel_description, channel_invite_link"
+        ).eq("user_id", mentor_user_id).execute()
+        
+        if result.data and len(result.data) > 0:
+            return result.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting mentor channel info: {e}")
+        return None
+
+
+async def create_mentor_broadcast(mentor_user_id: int, message_text: str, message_type: str = "text", media_file_id: str = None) -> int:
+    """Create mentor broadcast."""
+    try:
+        # Get students count
+        students = await get_mentor_students(mentor_user_id)
+        total_count = len(students)
+        
+        # Create broadcast
+        result = get_db().table("mentor_broadcasts").insert({
+            "mentor_user_id": mentor_user_id,
+            "message_text": message_text,
+            "message_type": message_type,
+            "media_file_id": media_file_id,
+            "total_count": total_count,
+            "status": "pending"
+        }).execute()
+        
+        if result.data and len(result.data) > 0:
+            broadcast_id = result.data[0]["id"]
+            
+            # Create recipients
+            recipients = [
+                {
+                    "broadcast_id": broadcast_id,
+                    "student_id": student["student_id"],
+                    "status": "pending"
+                }
+                for student in students
+            ]
+            
+            if recipients:
+                get_db().table("mentor_broadcast_recipients").insert(recipients).execute()
+            
+            return broadcast_id
+        return 0
+    except Exception as e:
+        logger.error(f"Error creating mentor broadcast: {e}")
+        return 0
+
+
+async def get_mentor_broadcasts(mentor_user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get mentor's broadcast history."""
+    try:
+        result = get_db().table("mentor_broadcasts").select("*").eq(
+            "mentor_user_id", mentor_user_id
+        ).order("created_at", desc=True).limit(limit).execute()
+        
+        return result.data or []
+    except Exception as e:
+        logger.error(f"Error getting mentor broadcasts: {e}")
+        return []
+
+
+async def get_broadcast_recipients(broadcast_id: int) -> List[Dict[str, Any]]:
+    """Get broadcast recipients with status."""
+    try:
+        result = get_db().table("mentor_broadcast_recipients").select(
+            "*, student:student_id(user_tag, username, full_name)"
+        ).eq("broadcast_id", broadcast_id).execute()
+        
+        return result.data or []
+    except Exception as e:
+        logger.error(f"Error getting broadcast recipients: {e}")
+        return []
+
+
+async def update_broadcast_recipient_status(broadcast_id: int, student_id: int, status: str, error_message: str = None) -> bool:
+    """Update broadcast recipient status."""
+    try:
+        update_data = {
+            "status": status,
+            "sent_at": datetime.utcnow().isoformat()
+        }
+        
+        if error_message:
+            update_data["error_message"] = error_message
+        
+        result = get_db().table("mentor_broadcast_recipients").update(update_data).eq(
+            "broadcast_id", broadcast_id
+        ).eq("student_id", student_id).execute()
+        
+        return len(result.data) > 0
+    except Exception as e:
+        logger.error(f"Error updating broadcast recipient status: {e}")
+        return False
+
+
+async def update_broadcast_status(broadcast_id: int, status: str, sent_count: int = None) -> bool:
+    """Update broadcast status."""
+    try:
+        update_data = {"status": status}
+        
+        if sent_count is not None:
+            update_data["sent_count"] = sent_count
+        
+        if status == "completed":
+            update_data["completed_at"] = datetime.utcnow().isoformat()
+        
+        result = get_db().table("mentor_broadcasts").update(update_data).eq("id", broadcast_id).execute()
+        
+        return len(result.data) > 0
+    except Exception as e:
+        logger.error(f"Error updating broadcast status: {e}")
+        return False
+
+
+async def get_pending_broadcasts() -> List[Dict[str, Any]]:
+    """Get pending broadcasts for processing."""
+    try:
+        result = get_db().table("mentor_broadcasts").select("*").eq("status", "pending").execute()
+        return result.data or []
+    except Exception as e:
+        logger.error(f"Error getting pending broadcasts: {e}")
+        return []
+
+
+async def get_mentor_data(mentor_user_id: int) -> Dict[str, Any]:
+    """Load all mentor panel data in parallel."""
+    try:
+        stats, students, channel_info, broadcasts = await asyncio.gather(
+            get_mentor_stats(mentor_user_id),
+            get_mentor_students(mentor_user_id),
+            get_mentor_channel_info(mentor_user_id),
+            get_mentor_broadcasts(mentor_user_id, 5)
+        )
+        
+        return {
+            "stats": stats,
+            "students": students,
+            "channel_info": channel_info,
+            "broadcasts": broadcasts
+        }
+    except Exception as e:
+        logger.error(f"Error loading mentor data: {e}")
+        return {
+            "stats": {},
+            "students": [],
+            "channel_info": None,
+            "broadcasts": []
+        }

@@ -8,6 +8,7 @@ from database.db import (
     update_user_status, update_user_wallet, update_user_activity,
     get_active_user_ids,
     get_user_referrer, get_user_referrals, get_referral_stats, update_referrer_earnings,
+    update_user_tag, get_user_by_tag, is_tag_available,
     get_users_by_status, ban_user, unban_user,
     
     # Profits
@@ -55,6 +56,13 @@ from database.db import (
     get_setting, set_setting,
     get_direct_payment_settings, update_direct_payment_settings,
     
+    # Mentor panel
+    is_user_mentor, get_mentor_students, get_mentor_stats,
+    update_mentor_channel, get_mentor_channel_info,
+    create_mentor_broadcast, get_mentor_broadcasts, get_broadcast_recipients,
+    update_broadcast_recipient_status, update_broadcast_status, get_pending_broadcasts,
+    get_mentor_data,
+    
     # Parallel loaders
     get_profile_data, get_main_menu_data,
 )
@@ -65,6 +73,7 @@ __all__ = [
     "update_user_status", "update_user_wallet", "update_user_activity",
     "get_active_user_ids",
     "get_user_referrer", "get_user_referrals", "get_referral_stats", "update_referrer_earnings",
+    "update_user_tag", "get_user_by_tag", "is_tag_available",
     "get_users_by_status", "ban_user", "unban_user",
     "create_profit", "get_user_profits", "get_user_stats",
     "get_unpaid_summary", "mark_profits_paid",
@@ -86,5 +95,10 @@ __all__ = [
     "create_notification", "get_unread_count",
     "get_setting", "set_setting",
     "get_direct_payment_settings", "update_direct_payment_settings",
+    "is_user_mentor", "get_mentor_students", "get_mentor_stats",
+    "update_mentor_channel", "get_mentor_channel_info",
+    "create_mentor_broadcast", "get_mentor_broadcasts", "get_broadcast_recipients",
+    "update_broadcast_recipient_status", "update_broadcast_status", "get_pending_broadcasts",
+    "get_mentor_data",
     "get_profile_data", "get_main_menu_data",
 ]
