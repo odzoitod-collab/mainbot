@@ -393,20 +393,33 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
     
     try:
         mentor_id = int(callback.data.split("_")[2])
-    except (IndexError, ValueError):
+        logger.info(f"User {callback.from_user.id} selecting mentor {mentor_id}")
+    except (IndexError, ValueError) as e:
+        logger.error(f"Error parsing mentor_id from callback data: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
         return
     
-    # Parallel fetch
-    mentor, current, channel_info = await asyncio.gather(
-        get_mentor(mentor_id),
-        get_user_mentor(callback.from_user.id),
-        get_mentor_channel_info(mentor.get('user_id') if mentor else None) if mentor else asyncio.sleep(0)
-    )
+    # First get mentor to get user_id
+    mentor = await get_mentor(mentor_id)
     
     if not mentor:
+        logger.warning(f"Mentor {mentor_id} not found")
         await callback.answer("❌ Не найден", show_alert=True)
         return
+    
+    logger.info(f"Mentor {mentor_id} found: {mentor.get('full_name')}, user_id: {mentor.get('user_id')}")
+    
+    # Then parallel fetch current mentor and channel info
+    try:
+        current, channel_info = await asyncio.gather(
+            get_user_mentor(callback.from_user.id),
+            get_mentor_channel_info(mentor.get('user_id'))
+        )
+        logger.info(f"Got channel info: {channel_info is not None}")
+    except Exception as e:
+        logger.error(f"Error fetching mentor data: {e}")
+        current = None
+        channel_info = None
     
     has_mentor = current is not None
     username = f"@{mentor['username']}" if mentor.get('username') else ""
@@ -430,6 +443,7 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
     if current and current.get("id") != mentor_id:
         text += "\n\n⚠️ У вас уже есть наставник."
     
+    logger.info(f"Sending mentor detail to user {callback.from_user.id}")
     await edit_with_brand(callback, text, reply_markup=get_mentor_detail_keyboard(mentor_id, has_mentor, mentor['service_name']))
 
 

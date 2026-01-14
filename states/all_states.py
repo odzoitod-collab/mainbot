@@ -83,3 +83,8 @@ class MentorChannelState(StatesGroup):
     waiting_for_channel_description = State()
     waiting_for_channel_link = State()
     waiting_for_confirm = State()
+
+
+class ChangeTagState(StatesGroup):
+    """States for tag change flow."""
+    waiting_for_tag = State()

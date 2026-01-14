@@ -3,6 +3,7 @@ import logging
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile, CallbackQuery
+from aiogram.fsm.context import FSMContext
 
 from database import (
     get_user, get_user_stats, get_top_workers, get_user_position,
@@ -12,6 +13,7 @@ from database import (
 )
 from config import ADMIN_IDS, BRAND_IMAGE_LOGO
 from utils.auto_delete import reply_with_auto_delete, reply_photo_with_auto_delete, is_group_chat
+from states.all_states import ChangeTagState
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -866,9 +868,12 @@ async def handle_back_to_mentors(callback: CallbackQuery) -> None:
 # ============================================
 
 @router.callback_query(F.data == "change_tag_menu")
-async def handle_change_tag_menu(callback: CallbackQuery) -> None:
+async def handle_change_tag_menu(callback: CallbackQuery, state: FSMContext) -> None:
     """Показать меню смены тега."""
     await callback.answer()
+    
+    # Очищаем состояние если было
+    await state.clear()
     
     try:
         user = await get_user(callback.from_user.id)
@@ -916,18 +921,22 @@ async def handle_change_tag_menu(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "start_tag_change")
-async def handle_start_tag_change(callback: CallbackQuery) -> None:
+async def handle_start_tag_change(callback: CallbackQuery, state: FSMContext) -> None:
     """Начать процесс смены тега."""
-    await callback.answer("Отправьте новый тег в чат", show_alert=True)
+    await callback.answer()
     
     text = (
         "✏️ <b>ВВОД НОВОГО ТЕГА</b>\n\n"
         "Отправьте новый тег в этот чат.\n\n"
-        "📝 <b>Формат:</b> <code>/changetag #новый_тег</code>\n\n"
+        "📝 <b>Формат:</b> <code>#новый_тег</code>\n\n"
         "💡 <b>Примеры:</b>\n"
-        "• <code>/changetag #irl_boss</code>\n"
-        "• <code>/changetag #worker1</code>\n"
-        "• <code>/changetag #pro_trader</code>\n\n"
+        "• <code>#irl_boss</code>\n"
+        "• <code>#worker1</code>\n"
+        "• <code>#pro_trader</code>\n\n"
+        "📋 <b>Правила:</b>\n"
+        "• Начинается с #\n"
+        "• Длина: 3-20 символов\n"
+        "• Только буквы, цифры и _\n\n"
         "⚠️ Тег должен быть уникальным!"
     )
     
@@ -935,12 +944,16 @@ async def handle_start_tag_change(callback: CallbackQuery) -> None:
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="🔙 Назад к меню",
+            text="❌ Отменить",
             callback_data="change_tag_menu"
         )]
     ])
     
     await callback.message.edit_text(text, reply_markup=keyboard)
+    
+    # Устанавливаем состояние ожидания тега
+    from states.all_states import ChangeTagState
+    await state.set_state(ChangeTagState.waiting_for_tag)
 
 
 @router.callback_query(F.data == "random_tag")
@@ -1112,3 +1125,66 @@ async def handle_back_to_profile(callback: CallbackQuery) -> None:
     except Exception as e:
         logger.error(f"Error returning to profile: {e}")
         await callback.message.edit_text("❌ Ошибка загрузки профиля.")
+
+
+
+# ============================================
+# FSM ОБРАБОТЧИКИ ДЛЯ СМЕНЫ ТЕГА
+# ============================================
+
+@router.message(ChangeTagState.waiting_for_tag)
+async def process_new_tag(message: Message, state: FSMContext) -> None:
+    """Обработка нового тега от пользователя."""
+    from states.all_states import ChangeTagState
+    
+    if not message.text:
+        await message.reply("❌ Отправьте текст с новым тегом.")
+        return
+    
+    new_tag = message.text.strip()
+    
+    # Валидация тега
+    if not new_tag.startswith('#'):
+        await message.reply("❌ Тег должен начинаться с символа #\n\nПопробуйте еще раз:")
+        return
+    
+    if len(new_tag) < 3 or len(new_tag) > 20:
+        await message.reply("❌ Длина тега должна быть от 3 до 20 символов\n\nПопробуйте еще раз:")
+        return
+    
+    # Проверяем символы (только буквы, цифры, подчеркивание)
+    import re
+    if not re.match(r'^#[a-zA-Z0-9_]+$', new_tag):
+        await message.reply("❌ Тег может содержать только буквы, цифры и символ _\n\nПопробуйте еще раз:")
+        return
+    
+    # Проверяем доступность тега
+    if not await is_tag_available(new_tag, message.from_user.id):
+        await message.reply("❌ Этот тег уже занят. Выберите другой.\n\nПопробуйте еще раз:")
+        return
+    
+    # Обновляем тег
+    success = await update_user_tag(message.from_user.id, new_tag)
+    
+    if success:
+        # Создаем клавиатуру для возврата к профилю
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="👤 Посмотреть профиль",
+                callback_data="back_to_profile"
+            )]
+        ])
+        
+        await message.reply(
+            f"✅ <b>ТЕГ ИЗМЕНЕН</b>\n\n"
+            f"Ваш новый тег: <b>{new_tag}</b>\n\n"
+            f"🎉 Теперь в топах и профитах будет отображаться ваш новый тег!",
+            reply_markup=keyboard
+        )
+        
+        # Очищаем состояние
+        await state.clear()
+    else:
+        await message.reply("❌ Ошибка при смене тега. Попробуйте позже.")
+        await state.clear()

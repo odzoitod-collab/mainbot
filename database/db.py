@@ -920,6 +920,9 @@ async def update_mentor_channel(mentor_user_id: int, channel_name: str, descript
 
 async def get_mentor_channel_info(mentor_user_id: int) -> Optional[Dict[str, Any]]:
     """Get mentor's channel information."""
+    if not mentor_user_id:
+        return None
+    
     try:
         result = get_db().table("mentors").select(
             "telegram_channel, channel_description, channel_invite_link"
