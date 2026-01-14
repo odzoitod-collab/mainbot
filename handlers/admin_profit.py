@@ -36,6 +36,7 @@ async def send_profit_to_channel(
     profit_id: int,
     worker_name: str,
     worker_username: str,
+    worker_tag: str,
     service_name: str,
     amount: float,
     net_profit: float,
@@ -45,8 +46,9 @@ async def send_profit_to_channel(
     global _profit_image_cache
     
     # Элегантный стиль сообщения (Белая тема) с встроенной картинкой
+    # Используем тег вместо username
     caption = (
-        f"▫️<b>ПРОФИТ</b> от @{worker_username}\n"
+        f"▫️<b>ПРОФИТ</b> от {worker_tag}\n"
         f"  ╭• 🛠 <b>Сервис:</b> {service_name}\n"
         f"  ╰• 🏳️ <b>Страна:</b> Россия🇷🇺\n"
         f"<blockquote>"
@@ -143,11 +145,18 @@ async def receive_worker(message: Message, state: FSMContext) -> None:
         await message.answer(f"╭• ❌ <b>Статус: {user['status']}</b>\n┖• Введите другого:")
         return
     
-    await state.update_data(worker_id=user["id"], worker_username=user["username"], worker_name=user["full_name"])
+    # Сохраняем тег пользователя
+    user_tag = user.get('user_tag', '#irl_???')
+    await state.update_data(
+        worker_id=user["id"], 
+        worker_username=user["username"], 
+        worker_name=user["full_name"],
+        worker_tag=user_tag
+    )
     await state.set_state(AdminProfitState.waiting_for_mammoth_name)
     
     msg = (
-        f"╭• ✅ <b>Воркер:</b> {user['full_name']} (@{user['username']})\n"
+        f"╭• ✅ <b>Воркер:</b> {user['full_name']} (@{user['username']}) {user_tag}\n"
         f"┠\n"
         f"┠• 💸 <b>СОЗДАНИЕ ВЫПЛАТЫ (2/7)</b>\n"
         f"┖• 🦣 Введите имя мамонта:"
@@ -391,7 +400,7 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
         try:
             mentor_msg = (
                  f"╭• 🦢 <b>ПРОФИТ ОТ УЧЕНИКА</b>\n"
-                 f"┠• 👤 Воркер: @{data['worker_username']}\n"
+                 f"┠• 👤 Воркер: {data.get('worker_tag', '#irl_???')}\n"
                  f"┖• 💸 Ваша доля: <b>{mentor_cut:.2f} RUB</b>"
             )
             
@@ -406,7 +415,7 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
         try:
             ref_msg = (
                 f"╭• 🔗 <b>РЕФЕРАЛЬНЫЙ ДОХОД</b>\n"
-                f"┠• 👤 Реферал: @{data['worker_username']}\n"
+                f"┠• 👤 Реферал: {data.get('worker_tag', '#irl_???')}\n"
                 f"┖• 💸 Ваша доля: <b>{referral_cut:.2f} RUB</b>"
             )
             
@@ -422,6 +431,7 @@ async def confirm_profit(callback: CallbackQuery, state: FSMContext) -> None:
         profit_id=profit_id,
         worker_name=data['worker_name'],
         worker_username=data['worker_username'],
+        worker_tag=data.get('worker_tag', '#irl_???'),
         service_name=data['service_name'],
         amount=amount,
         net_profit=net_profit,

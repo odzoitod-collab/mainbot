@@ -41,6 +41,8 @@ async def reply_with_auto_delete(
     text: str,
     delay: int = 10,
     delete_original: bool = True,
+    use_photo: bool = True,
+    default_photo_path: str = "images/ирл.jpg",
     **kwargs
 ) -> Message:
     """
@@ -51,12 +53,30 @@ async def reply_with_auto_delete(
         text: Reply text
         delay: Auto-delete delay (only in groups)
         delete_original: Delete original message too
+        use_photo: Try to send with default photo
+        default_photo_path: Path to default photo
         **kwargs: Additional arguments for reply
     
     Returns:
         Sent message
     """
-    # Send reply
+    # Try to send with photo first if use_photo is True
+    if use_photo:
+        try:
+            from aiogram.types import FSInputFile
+            photo = FSInputFile(default_photo_path)
+            return await reply_photo_with_auto_delete(
+                message, 
+                photo=photo, 
+                caption=text, 
+                delay=delay, 
+                delete_original=delete_original,
+                **kwargs
+            )
+        except Exception as e:
+            logger.debug(f"Failed to send with photo, falling back to text: {e}")
+    
+    # Send reply without photo
     sent_message = await message.reply(text, **kwargs)
     
     # Schedule auto-deletion only in group chats

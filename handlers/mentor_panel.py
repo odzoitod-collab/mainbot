@@ -1,7 +1,7 @@
 """Mentor panel handlers."""
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from aiogram import Router, F
@@ -71,9 +71,17 @@ def _build_students_text(students: list, page: int = 0, per_page: int = 5) -> tu
         earnings = student.get('mentor_earnings', 0)
         last_activity = student.get('last_activity')
         
-        activity_text = "🟢 Активен" if last_activity and (
-            datetime.now() - datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
-        ).days < 7 else "🔴 Неактивен"
+        activity_text = "🟢 Активен"
+        if last_activity:
+            try:
+                last_activity_dt = datetime.fromisoformat(last_activity.replace('Z', '+00:00'))
+                delta = datetime.now(timezone.utc) - last_activity_dt
+                if delta.days >= 7:
+                    activity_text = "🔴 Неактивен"
+            except Exception:
+                activity_text = "⚪ Неизвестно"
+        else:
+            activity_text = "🔴 Неактивен"
         
         text += (
             f"{i}. <b>{tag}</b>\n"
@@ -187,17 +195,27 @@ async def show_mentor_students(callback: CallbackQuery) -> None:
         
         text, total_pages = _build_students_text(students, page)
         
+        # Проверяем что текст не пустой
+        if not text or not text.strip():
+            text = "❌ Нет данных для отображения"
+            logger.warning(f"Empty text generated for mentor {callback.from_user.id}")
+        
         await edit_with_brand(
             callback, text,
             reply_markup=get_mentor_students_keyboard(page, total_pages),
             image_path=BRAND_IMAGE_MENTORS
         )
     except Exception as e:
-        logger.error(f"Error showing mentor students: {e}")
-        await callback.message.edit_text(
-            "❌ Ошибка загрузки списка студентов.\n\n"
-            "Попробуйте позже или обратитесь к администратору."
-        )
+        logger.error(f"Error showing mentor students: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text(
+                "❌ Ошибка загрузки списка студентов.\n\n"
+                "Попробуйте позже или обратитесь к администратору.",
+                reply_markup=get_back_to_mentor_panel_keyboard()
+            )
+        except Exception as edit_error:
+            logger.error(f"Error editing message: {edit_error}", exc_info=True)
+            await callback.answer("❌ Ошибка загрузки списка студентов", show_alert=True)
 
 
 @router.callback_query(F.data == "mentor_broadcast")

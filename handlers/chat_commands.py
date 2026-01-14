@@ -878,7 +878,11 @@ async def handle_change_tag_menu(callback: CallbackQuery, state: FSMContext) -> 
         
         user = await get_user(callback.from_user.id)
         if not user:
-            await callback.message.edit_text("❌ Пользователь не найден.")
+            # Проверяем тип сообщения
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Пользователь не найден.")
+            else:
+                await callback.message.edit_text("❌ Пользователь не найден.")
             return
         
         current_tag = user.get('user_tag', '#irl_???')
@@ -913,12 +917,19 @@ async def handle_change_tag_menu(callback: CallbackQuery, state: FSMContext) -> 
             )]
         ])
         
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        # Проверяем тип сообщения и используем правильный метод
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+        else:
+            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
         logger.error(f"Error in change_tag_menu: {e}", exc_info=True)
         try:
-            await callback.message.edit_text("❌ Ошибка загрузки меню смены тега.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка загрузки меню смены тега.")
+            else:
+                await callback.message.edit_text("❌ Ошибка загрузки меню смены тега.")
         except:
             await callback.answer("❌ Ошибка загрузки меню смены тега.", show_alert=True)
 
@@ -953,7 +964,11 @@ async def handle_start_tag_change(callback: CallbackQuery, state: FSMContext) ->
             )]
         ])
         
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        # Проверяем тип сообщения
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+        else:
+            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
         # Устанавливаем состояние ожидания тега
         await state.set_state(ChangeTagState.waiting_for_tag)
@@ -962,7 +977,10 @@ async def handle_start_tag_change(callback: CallbackQuery, state: FSMContext) ->
     except Exception as e:
         logger.error(f"Error in start_tag_change: {e}", exc_info=True)
         try:
-            await callback.message.edit_text("❌ Ошибка. Попробуйте еще раз.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка. Попробуйте еще раз.")
+            else:
+                await callback.message.edit_text("❌ Ошибка. Попробуйте еще раз.")
         except:
             await callback.answer("❌ Ошибка. Попробуйте еще раз.", show_alert=True)
 
@@ -1000,15 +1018,19 @@ async def handle_random_tag(callback: CallbackQuery) -> None:
                 variants.append(tag)
         
         if not variants:
-            await callback.message.edit_text(
+            text = (
                 "😅 <b>НЕ УДАЛОСЬ СГЕНЕРИРОВАТЬ</b>\n\n"
                 "Все случайные теги заняты.\n"
-                "Попробуйте ввести тег вручную.",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🔙 Назад", callback_data="change_tag_menu")]
-                ]),
-                parse_mode="HTML"
+                "Попробуйте ввести тег вручную."
             )
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="change_tag_menu")]
+            ])
+            
+            if callback.message.photo:
+                await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+            else:
+                await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
             return
         
         text = (
@@ -1039,12 +1061,20 @@ async def handle_random_tag(callback: CallbackQuery) -> None:
         ])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        
+        # Проверяем тип сообщения
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+        else:
+            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
         logger.error(f"Error generating random tag: {e}", exc_info=True)
         try:
-            await callback.message.edit_text("❌ Ошибка генерации тега.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка генерации тега.")
+            else:
+                await callback.message.edit_text("❌ Ошибка генерации тега.")
         except:
             await callback.answer("❌ Ошибка генерации тега.", show_alert=True)
 
@@ -1068,15 +1098,19 @@ async def handle_select_tag(callback: CallbackQuery, state: FSMContext) -> None:
         logger.info(f"Tag {new_tag} availability: {is_available}")
         
         if not is_available:
-            await callback.message.edit_text(
+            text = (
                 f"❌ <b>ТЕГ ЗАНЯТ</b>\n\n"
                 f"Тег <code>{new_tag}</code> уже занят другим пользователем.\n"
-                "Попробуйте другой вариант.",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🔙 Назад", callback_data="random_tag")]
-                ]),
-                parse_mode="HTML"
+                "Попробуйте другой вариант."
             )
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="random_tag")]
+            ])
+            
+            if callback.message.photo:
+                await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+            else:
+                await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
             return
         
         # Обновляем тег
@@ -1097,14 +1131,23 @@ async def handle_select_tag(callback: CallbackQuery, state: FSMContext) -> None:
                 )]
             ])
             
-            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+            else:
+                await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         else:
-            await callback.message.edit_text("❌ Ошибка при смене тега. Попробуйте позже.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка при смене тега. Попробуйте позже.")
+            else:
+                await callback.message.edit_text("❌ Ошибка при смене тега. Попробуйте позже.")
             
     except Exception as e:
         logger.error(f"Error selecting tag: {e}", exc_info=True)
         try:
-            await callback.message.edit_text("❌ Ошибка при смене тега.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка при смене тега.")
+            else:
+                await callback.message.edit_text("❌ Ошибка при смене тега.")
         except:
             await callback.answer("❌ Ошибка при смене тега.", show_alert=True)
 
@@ -1121,7 +1164,10 @@ async def handle_back_to_profile(callback: CallbackQuery, state: FSMContext) -> 
         user = await get_user(callback.from_user.id)
         
         if not user or user["status"] != "active":
-            await callback.message.edit_text("❌ Не зарегистрированы.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Не зарегистрированы.")
+            else:
+                await callback.message.edit_text("❌ Не зарегистрированы.")
             return
         
         stats = await get_user_stats(callback.from_user.id)
@@ -1151,12 +1197,19 @@ async def handle_back_to_profile(callback: CallbackQuery, state: FSMContext) -> 
             )]
         ])
         
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        # Проверяем тип сообщения
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=text, reply_markup=keyboard, parse_mode="HTML")
+        else:
+            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
         logger.error(f"Error returning to profile: {e}", exc_info=True)
         try:
-            await callback.message.edit_text("❌ Ошибка загрузки профиля.")
+            if callback.message.photo:
+                await callback.message.edit_caption(caption="❌ Ошибка загрузки профиля.")
+            else:
+                await callback.message.edit_text("❌ Ошибка загрузки профиля.")
         except:
             await callback.answer("❌ Ошибка загрузки профиля.", show_alert=True)
 

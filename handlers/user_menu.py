@@ -76,8 +76,7 @@ def _build_profile_text(user: dict, stats: dict, position: dict, mentor: Optiona
         f"┣ За Неделю: {stats.get('week_profit', 0):.2f} RUB\n"
         f"┣ За Месяц: {stats.get('month_profit', 0):.2f} RUB\n"
         f"┣ Рекорд: {stats.get('max_profit', 0):.2f} RUB\n"
-        f"┗ Место в топе: {position['overall_rank']} из {position['total_users']}\n\n"
-        f"🔧 Сменить тег: /changetag новый_тег"
+        f"┗ Место в топе: {position['overall_rank']} из {position['total_users']}"
     )
 
 
@@ -422,6 +421,8 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
         channel_info = None
     
     has_mentor = current is not None
+    # Проверяем, является ли пользователь учеником этого наставника
+    is_student_of_this_mentor = current and current.get("id") == mentor_id
     username = f"@{mentor['username']}" if mentor.get('username') else ""
     
     text = (
@@ -432,8 +433,8 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
         f"👥 Учеников: {mentor.get('students_count', 0)}"
     )
     
-    # Add channel info if available
-    if channel_info and channel_info.get('telegram_channel'):
+    # Показываем канал только ученикам этого наставника
+    if is_student_of_this_mentor and channel_info and channel_info.get('telegram_channel'):
         text += f"\n\n📺 <b>ТГК наставника:</b> {channel_info['telegram_channel']}"
         if channel_info.get('channel_description'):
             text += f"\n📝 {channel_info['channel_description']}"
@@ -443,7 +444,7 @@ async def show_mentor_detail(callback: CallbackQuery) -> None:
     if current and current.get("id") != mentor_id:
         text += "\n\n⚠️ У вас уже есть наставник."
     
-    logger.info(f"Sending mentor detail to user {callback.from_user.id}")
+    logger.info(f"Sending mentor detail to user {callback.from_user.id}, is_student: {is_student_of_this_mentor}")
     await edit_with_brand(callback, text, reply_markup=get_mentor_detail_keyboard(mentor_id, has_mentor, mentor['service_name']))
 
 
