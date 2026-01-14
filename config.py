@@ -4,8 +4,8 @@ from typing import List
 # ============================================
 # TELEGRAM BOT
 # ============================================
-BOT_TOKEN: str = "8451842564:AAE8wIEZyb2c4EQ8BdBa4Murtt7lSxZMRQU"
-BOT_USERNAME: str = "irlteam_bot"
+BOT_TOKEN: str = "8541652170:AAFrWQGHtMxco3YNmpXSW2GVrOe4yuVBJWk"
+BOT_USERNAME: str = "irlteamofficial_bot"
 
 # ============================================
 # ADMINS
