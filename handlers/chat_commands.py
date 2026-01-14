@@ -870,12 +870,12 @@ async def handle_back_to_mentors(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "change_tag_menu")
 async def handle_change_tag_menu(callback: CallbackQuery, state: FSMContext) -> None:
     """Показать меню смены тега."""
-    await callback.answer()
-    
-    # Очищаем состояние если было
-    await state.clear()
-    
     try:
+        await callback.answer()
+        
+        # Очищаем состояние если было
+        await state.clear()
+        
         user = await get_user(callback.from_user.id)
         if not user:
             await callback.message.edit_text("❌ Пользователь не найден.")
@@ -909,51 +909,62 @@ async def handle_change_tag_menu(callback: CallbackQuery, state: FSMContext) -> 
             )],
             [InlineKeyboardButton(
                 text="🔙 Назад к профилю",
-                callback_data="back_to_profile"
+                callback_data="profile"
             )]
         ])
         
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
-        logger.error(f"Error in change_tag_menu: {e}")
-        await callback.message.edit_text("❌ Ошибка загрузки меню смены тега.")
+        logger.error(f"Error in change_tag_menu: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text("❌ Ошибка загрузки меню смены тега.")
+        except:
+            await callback.answer("❌ Ошибка загрузки меню смены тега.", show_alert=True)
 
 
 @router.callback_query(F.data == "start_tag_change")
 async def handle_start_tag_change(callback: CallbackQuery, state: FSMContext) -> None:
     """Начать процесс смены тега."""
-    await callback.answer()
-    
-    text = (
-        "✏️ <b>ВВОД НОВОГО ТЕГА</b>\n\n"
-        "Отправьте новый тег в этот чат.\n\n"
-        "📝 <b>Формат:</b> <code>#новый_тег</code>\n\n"
-        "💡 <b>Примеры:</b>\n"
-        "• <code>#irl_boss</code>\n"
-        "• <code>#worker1</code>\n"
-        "• <code>#pro_trader</code>\n\n"
-        "📋 <b>Правила:</b>\n"
-        "• Начинается с #\n"
-        "• Длина: 3-20 символов\n"
-        "• Только буквы, цифры и _\n\n"
-        "⚠️ Тег должен быть уникальным!"
-    )
-    
-    # Кнопка назад
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="❌ Отменить",
-            callback_data="change_tag_menu"
-        )]
-    ])
-    
-    await callback.message.edit_text(text, reply_markup=keyboard)
-    
-    # Устанавливаем состояние ожидания тега
-    from states.all_states import ChangeTagState
-    await state.set_state(ChangeTagState.waiting_for_tag)
+    try:
+        await callback.answer()
+        
+        text = (
+            "✏️ <b>ВВОД НОВОГО ТЕГА</b>\n\n"
+            "Отправьте новый тег в этот чат.\n\n"
+            "📝 <b>Формат:</b> <code>#новый_тег</code>\n\n"
+            "💡 <b>Примеры:</b>\n"
+            "• <code>#irl_boss</code>\n"
+            "• <code>#worker1</code>\n"
+            "• <code>#pro_trader</code>\n\n"
+            "📋 <b>Правила:</b>\n"
+            "• Начинается с #\n"
+            "• Длина: 3-20 символов\n"
+            "• Только буквы, цифры и _\n\n"
+            "⚠️ Тег должен быть уникальным!"
+        )
+        
+        # Кнопка назад
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="❌ Отменить",
+                callback_data="change_tag_menu"
+            )]
+        ])
+        
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        
+        # Устанавливаем состояние ожидания тега
+        await state.set_state(ChangeTagState.waiting_for_tag)
+        logger.info(f"User {callback.from_user.id} entered tag change state")
+        
+    except Exception as e:
+        logger.error(f"Error in start_tag_change: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text("❌ Ошибка. Попробуйте еще раз.")
+        except:
+            await callback.answer("❌ Ошибка. Попробуйте еще раз.", show_alert=True)
 
 
 @router.callback_query(F.data == "random_tag")
@@ -995,7 +1006,8 @@ async def handle_random_tag(callback: CallbackQuery) -> None:
                 "Попробуйте ввести тег вручную.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                     [InlineKeyboardButton(text="🔙 Назад", callback_data="change_tag_menu")]
-                ])
+                ]),
+                parse_mode="HTML"
             )
             return
         
@@ -1027,36 +1039,49 @@ async def handle_random_tag(callback: CallbackQuery) -> None:
         ])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
-        logger.error(f"Error generating random tag: {e}")
-        await callback.message.edit_text("❌ Ошибка генерации тега.")
+        logger.error(f"Error generating random tag: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text("❌ Ошибка генерации тега.")
+        except:
+            await callback.answer("❌ Ошибка генерации тега.", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("select_tag_"))
-async def handle_select_tag(callback: CallbackQuery) -> None:
+async def handle_select_tag(callback: CallbackQuery, state: FSMContext) -> None:
     """Выбрать сгенерированный тег."""
-    await callback.answer()
-    
     try:
+        await callback.answer()
+        
+        # Очищаем состояние
+        await state.clear()
+        
         tag_without_hash = callback.data.replace("select_tag_", "")
         new_tag = f"#{tag_without_hash}"
         
+        logger.info(f"User {callback.from_user.id} selecting tag: {new_tag}")
+        
         # Проверяем доступность еще раз
-        if not await is_tag_available(new_tag, callback.from_user.id):
+        is_available = await is_tag_available(new_tag, callback.from_user.id)
+        logger.info(f"Tag {new_tag} availability: {is_available}")
+        
+        if not is_available:
             await callback.message.edit_text(
                 f"❌ <b>ТЕГ ЗАНЯТ</b>\n\n"
                 f"Тег <code>{new_tag}</code> уже занят другим пользователем.\n"
                 "Попробуйте другой вариант.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                     [InlineKeyboardButton(text="🔙 Назад", callback_data="random_tag")]
-                ])
+                ]),
+                parse_mode="HTML"
             )
             return
         
         # Обновляем тег
         success = await update_user_tag(callback.from_user.id, new_tag)
+        logger.info(f"Tag update result for user {callback.from_user.id}: {success}")
         
         if success:
             text = (
@@ -1068,25 +1093,31 @@ async def handle_select_tag(callback: CallbackQuery) -> None:
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(
                     text="👤 Посмотреть профиль",
-                    callback_data="back_to_profile"
+                    callback_data="profile"
                 )]
             ])
             
-            await callback.message.edit_text(text, reply_markup=keyboard)
+            await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         else:
             await callback.message.edit_text("❌ Ошибка при смене тега. Попробуйте позже.")
             
     except Exception as e:
-        logger.error(f"Error selecting tag: {e}")
-        await callback.message.edit_text("❌ Ошибка при смене тега.")
+        logger.error(f"Error selecting tag: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text("❌ Ошибка при смене тега.")
+        except:
+            await callback.answer("❌ Ошибка при смене тега.", show_alert=True)
 
 
 @router.callback_query(F.data == "back_to_profile")
-async def handle_back_to_profile(callback: CallbackQuery) -> None:
+async def handle_back_to_profile(callback: CallbackQuery, state: FSMContext) -> None:
     """Вернуться к профилю."""
-    await callback.answer()
-    
     try:
+        await callback.answer()
+        
+        # Очищаем состояние
+        await state.clear()
+        
         user = await get_user(callback.from_user.id)
         
         if not user or user["status"] != "active":
@@ -1120,11 +1151,14 @@ async def handle_back_to_profile(callback: CallbackQuery) -> None:
             )]
         ])
         
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
         
     except Exception as e:
-        logger.error(f"Error returning to profile: {e}")
-        await callback.message.edit_text("❌ Ошибка загрузки профиля.")
+        logger.error(f"Error returning to profile: {e}", exc_info=True)
+        try:
+            await callback.message.edit_text("❌ Ошибка загрузки профиля.")
+        except:
+            await callback.answer("❌ Ошибка загрузки профиля.", show_alert=True)
 
 
 
@@ -1135,56 +1169,68 @@ async def handle_back_to_profile(callback: CallbackQuery) -> None:
 @router.message(ChangeTagState.waiting_for_tag)
 async def process_new_tag(message: Message, state: FSMContext) -> None:
     """Обработка нового тега от пользователя."""
-    from states.all_states import ChangeTagState
-    
-    if not message.text:
-        await message.reply("❌ Отправьте текст с новым тегом.")
-        return
-    
-    new_tag = message.text.strip()
-    
-    # Валидация тега
-    if not new_tag.startswith('#'):
-        await message.reply("❌ Тег должен начинаться с символа #\n\nПопробуйте еще раз:")
-        return
-    
-    if len(new_tag) < 3 or len(new_tag) > 20:
-        await message.reply("❌ Длина тега должна быть от 3 до 20 символов\n\nПопробуйте еще раз:")
-        return
-    
-    # Проверяем символы (только буквы, цифры, подчеркивание)
-    import re
-    if not re.match(r'^#[a-zA-Z0-9_]+$', new_tag):
-        await message.reply("❌ Тег может содержать только буквы, цифры и символ _\n\nПопробуйте еще раз:")
-        return
-    
-    # Проверяем доступность тега
-    if not await is_tag_available(new_tag, message.from_user.id):
-        await message.reply("❌ Этот тег уже занят. Выберите другой.\n\nПопробуйте еще раз:")
-        return
-    
-    # Обновляем тег
-    success = await update_user_tag(message.from_user.id, new_tag)
-    
-    if success:
-        # Создаем клавиатуру для возврата к профилю
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="👤 Посмотреть профиль",
-                callback_data="back_to_profile"
-            )]
-        ])
+    try:
+        logger.info(f"Processing new tag from user {message.from_user.id}: {message.text}")
         
-        await message.reply(
-            f"✅ <b>ТЕГ ИЗМЕНЕН</b>\n\n"
-            f"Ваш новый тег: <b>{new_tag}</b>\n\n"
-            f"🎉 Теперь в топах и профитах будет отображаться ваш новый тег!",
-            reply_markup=keyboard
-        )
+        if not message.text:
+            await message.reply("❌ Отправьте текст с новым тегом.")
+            return
         
-        # Очищаем состояние
-        await state.clear()
-    else:
-        await message.reply("❌ Ошибка при смене тега. Попробуйте позже.")
+        new_tag = message.text.strip()
+        
+        # Валидация тега
+        if not new_tag.startswith('#'):
+            await message.reply("❌ Тег должен начинаться с символа #\n\nПопробуйте еще раз:")
+            return
+        
+        if len(new_tag) < 3 or len(new_tag) > 20:
+            await message.reply("❌ Длина тега должна быть от 3 до 20 символов\n\nПопробуйте еще раз:")
+            return
+        
+        # Проверяем символы (только буквы, цифры, подчеркивание)
+        import re
+        if not re.match(r'^#[a-zA-Z0-9_]+$', new_tag):
+            await message.reply("❌ Тег может содержать только буквы, цифры и символ _\n\nПопробуйте еще раз:")
+            return
+        
+        # Проверяем доступность тега
+        is_available = await is_tag_available(new_tag, message.from_user.id)
+        logger.info(f"Tag {new_tag} availability: {is_available}")
+        
+        if not is_available:
+            await message.reply("❌ Этот тег уже занят. Выберите другой.\n\nПопробуйте еще раз:")
+            return
+        
+        # Обновляем тег
+        success = await update_user_tag(message.from_user.id, new_tag)
+        logger.info(f"Tag update result for user {message.from_user.id}: {success}")
+        
+        if success:
+            # Создаем клавиатуру для возврата к профилю
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="👤 Посмотреть профиль",
+                    callback_data="profile"
+                )]
+            ])
+            
+            await message.reply(
+                f"✅ <b>ТЕГ ИЗМЕНЕН</b>\n\n"
+                f"Ваш новый тег: <b>{new_tag}</b>\n\n"
+                f"🎉 Теперь в топах и профитах будет отображаться ваш новый тег!",
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            
+            # Очищаем состояние
+            await state.clear()
+            logger.info(f"Tag change completed successfully for user {message.from_user.id}")
+        else:
+            await message.reply("❌ Ошибка при смене тега. Попробуйте позже.")
+            await state.clear()
+            
+    except Exception as e:
+        logger.error(f"Error in process_new_tag: {e}", exc_info=True)
+        await message.reply("❌ Произошла ошибка. Попробуйте позже.")
         await state.clear()

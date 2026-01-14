@@ -53,13 +53,13 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT 
-        u.id as student_id,
-        u.user_tag as student_tag,
+        u.id,
+        u.user_tag,
         u.username,
         u.full_name,
-        COALESCE(stats.total_profit, 0) as total_profit,
+        COALESCE(stats.total_profit, 0),
         u.last_activity,
-        COALESCE(mentor_earnings.total_earned, 0) as mentor_earnings
+        COALESCE(mentor_earnings_data.total_earned, 0)
     FROM users u
     INNER JOIN mentors m ON u.mentor_id = m.id
     LEFT JOIN (
@@ -71,12 +71,12 @@ BEGIN
     ) stats ON u.id = stats.worker_id
     LEFT JOIN (
         SELECT 
-            student_id,
-            SUM(amount) as total_earned
+            mp.student_id as stud_id,
+            SUM(mp.amount) as total_earned
         FROM mentor_profits mp
         WHERE mp.mentor_user_id = mentor_user_id_param
-        GROUP BY student_id
-    ) mentor_earnings ON u.id = mentor_earnings.student_id
+        GROUP BY mp.student_id
+    ) mentor_earnings_data ON u.id = mentor_earnings_data.stud_id
     WHERE m.user_id = mentor_user_id_param
     ORDER BY stats.total_profit DESC NULLS LAST;
 END;

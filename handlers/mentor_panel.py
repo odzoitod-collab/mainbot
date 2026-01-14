@@ -170,22 +170,34 @@ async def show_mentor_students(callback: CallbackQuery) -> None:
     """Show mentor students list."""
     await callback.answer()
     
+    logger.info(f"User {callback.from_user.id} viewing mentor students")
+    
     # Get page number
     page = 0
     if callback.data.startswith("mentor_students_page_"):
         try:
             page = int(callback.data.split("_")[-1])
+            logger.info(f"Page: {page}")
         except (IndexError, ValueError):
             page = 0
     
-    students = await get_mentor_students(callback.from_user.id)
-    text, total_pages = _build_students_text(students, page)
-    
-    await edit_with_brand(
-        callback, text,
-        reply_markup=get_mentor_students_keyboard(page, total_pages),
-        image_path=BRAND_IMAGE_MENTORS
-    )
+    try:
+        students = await get_mentor_students(callback.from_user.id)
+        logger.info(f"Found {len(students)} students for mentor {callback.from_user.id}")
+        
+        text, total_pages = _build_students_text(students, page)
+        
+        await edit_with_brand(
+            callback, text,
+            reply_markup=get_mentor_students_keyboard(page, total_pages),
+            image_path=BRAND_IMAGE_MENTORS
+        )
+    except Exception as e:
+        logger.error(f"Error showing mentor students: {e}")
+        await callback.message.edit_text(
+            "❌ Ошибка загрузки списка студентов.\n\n"
+            "Попробуйте позже или обратитесь к администратору."
+        )
 
 
 @router.callback_query(F.data == "mentor_broadcast")

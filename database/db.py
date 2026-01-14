@@ -186,16 +186,19 @@ async def create_user(user_id: int, username: str, full_name: str,
 async def update_user_tag(user_id: int, new_tag: str) -> bool:
     """Update user tag if it's available."""
     try:
-        # Проверяем, что тег не занят
-        existing = get_db().table("users").select("id").eq("user_tag", new_tag).execute()
+        # Проверяем, что тег не занят другим пользователем
+        existing = get_db().table("users").select("id").eq("user_tag", new_tag).neq("id", user_id).execute()
         if existing.data:
-            return False  # Тег уже занят
+            logger.warning(f"Tag {new_tag} is already taken by user {existing.data[0]['id']}")
+            return False  # Тег уже занят другим пользователем
         
         # Обновляем тег
-        get_db().table("users").update({"user_tag": new_tag}).eq("id", user_id).execute()
+        result = get_db().table("users").update({"user_tag": new_tag}).eq("id", user_id).execute()
         cache.delete(f"user:{user_id}")
+        logger.info(f"Successfully updated tag for user {user_id} to {new_tag}")
         return True
-    except:
+    except Exception as e:
+        logger.error(f"Error updating user tag: {e}", exc_info=True)
         return False
 
 
@@ -882,8 +885,13 @@ async def is_user_mentor(user_id: int) -> bool:
 
 async def get_mentor_students(mentor_user_id: int) -> List[Dict[str, Any]]:
     """Get mentor's students with statistics."""
-    result = get_db().rpc("get_mentor_students", {"mentor_user_id_param": mentor_user_id}).execute()
-    return result.data or []
+    try:
+        result = get_db().rpc("get_mentor_students", {"mentor_user_id_param": mentor_user_id}).execute()
+        logger.info(f"get_mentor_students for {mentor_user_id}: {len(result.data or [])} students")
+        return result.data or []
+    except Exception as e:
+        logger.error(f"Error in get_mentor_students: {e}")
+        return []
 
 
 async def get_mentor_stats(mentor_user_id: int) -> Dict[str, Any]:
