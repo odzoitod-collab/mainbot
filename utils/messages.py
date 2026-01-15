@@ -75,26 +75,51 @@ async def edit_with_brand(
     parse_mode: str = "HTML",
     image_path: Optional[str] = None
 ) -> bool:
-    """Edit message - always use correct image for the section."""
+    """Edit message - keep the same photo, just change caption and keyboard."""
     try:
         msg = callback.message
-        img_path = image_path or BRAND_IMAGE_LOGO
         
-        # Always delete old message and send new with correct image
-        # This ensures the right image is always shown
+        # If message has photo - edit caption
+        if msg.photo:
+            await msg.edit_caption(
+                caption=text,
+                reply_markup=reply_markup,
+                parse_mode=parse_mode
+            )
+            return True
+        
+        # If message has text only - edit text
+        if msg.text:
+            await msg.edit_text(
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode=parse_mode
+            )
+            return True
+        
+        # Fallback - delete and send new (shouldn't happen normally)
+        logger.warning(f"Message has no photo or text, falling back to delete+send")
         with suppress(Exception):
             await msg.delete()
-        
-        await send_with_brand(callback, text, reply_markup, parse_mode, img_path)
+        await send_with_brand(callback, text, reply_markup, parse_mode, image_path)
         return True
+        
+    except TelegramBadRequest as e:
+        # If edit fails (e.g., message is too old or content is the same)
+        logger.warning(f"edit_with_brand TelegramBadRequest: {e}")
+        
+        # Try to delete and send new as fallback
+        try:
+            with suppress(Exception):
+                await callback.message.delete()
+            await send_with_brand(callback, text, reply_markup, parse_mode, image_path)
+            return True
+        except Exception as fallback_error:
+            logger.error(f"Fallback also failed: {fallback_error}")
+            return False
         
     except Exception as e:
         logger.error(f"edit_with_brand failed: {e}")
-        # Last resort - try to send new message
-        with suppress(Exception):
-            await callback.message.delete()
-        with suppress(Exception):
-            await send_with_brand(callback, text, reply_markup, parse_mode, img_path)
         return False
 
 

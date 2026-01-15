@@ -22,7 +22,7 @@ router = Router()
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     try:
-        photo = FSInputFile("images/ирл.jpg")
+        photo = FSInputFile("images/irl.jpg")
         await reply_photo_with_auto_delete(message, 
             photo=photo,
             caption="📋 <b>КОМАНДЫ</b>\n\n"
@@ -105,7 +105,7 @@ async def cmd_me(message: Message) -> None:
     ])
     
     try:
-        photo = FSInputFile("images/профиль.JPG")
+        photo = FSInputFile("images/profile.JPG")
         await reply_photo_with_auto_delete(message, photo=photo, caption=text, reply_markup=keyboard, delay=10, delete_original=True)
     except Exception:
         await reply_with_auto_delete(message, text, reply_markup=keyboard, delay=10, delete_original=True)
@@ -196,7 +196,7 @@ async def cmd_kasa(message: Message) -> None:
                 text += f"{i}. {display_name} - {worker['total_profit']:.2f} RUB\n"
         
         try:
-            photo = FSInputFile("images/ирл.jpg")
+            photo = FSInputFile("images/irl.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -245,7 +245,7 @@ async def cmd_kurator(message: Message) -> None:
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, reply_markup=keyboard, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, reply_markup=keyboard, delay=10, delete_original=True)
@@ -290,7 +290,7 @@ async def cmd_services(message: Message) -> None:
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         try:
-            photo = FSInputFile("images/сервисы.JPG")
+            photo = FSInputFile("images/sevices.JPG")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, reply_markup=keyboard, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, reply_markup=keyboard, delay=10, delete_original=True)
@@ -336,7 +336,7 @@ async def cmd_resources(message: Message) -> None:
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, reply_markup=keyboard, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, reply_markup=keyboard, delay=10, delete_original=True)
@@ -376,7 +376,7 @@ async def cmd_community(message: Message) -> None:
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, reply_markup=keyboard, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, reply_markup=keyboard, delay=10, delete_original=True)
@@ -425,7 +425,7 @@ async def cmd_analytics(message: Message) -> None:
                 text += f"{i}. {display_name} - {worker['total_profit']:.2f} RUB\n"
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -448,7 +448,7 @@ async def cmd_ideas(message: Message) -> None:
         text += "📝 Отправляйте свои идеи администраторам!"
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -477,7 +477,7 @@ async def cmd_info(message: Message) -> None:
         text += "📱 Команды: /help"
         
         try:
-            photo = FSInputFile("images/ирл.jpg")
+            photo = FSInputFile("images/irl.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -500,7 +500,7 @@ async def cmd_rules(message: Message) -> None:
     text += "📞 Вопросы к администрации"
     
     try:
-        photo = FSInputFile("images/главное меню.jpg")
+        photo = FSInputFile("images/home.jpg")
         await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
     except Exception:
         await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -523,7 +523,7 @@ async def cmd_support(message: Message) -> None:
         text += "⏰ Время ответа: до 24 часов"
         
         try:
-            photo = FSInputFile("images/главное меню.jpg")
+            photo = FSInputFile("images/home.jpg")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -566,7 +566,7 @@ async def cmd_referral(message: Message) -> None:
         text += "📱 Ваша ссылка в боте: /start"
         
         try:
-            photo = FSInputFile("images/профиль.JPG")
+            photo = FSInputFile("images/profile.JPG")
             await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
         except Exception:
             await reply_with_auto_delete(message, text, delay=10, delete_original=True)
@@ -649,7 +649,7 @@ async def cmd_quick(message: Message) -> None:
     text += "📋 Все команды: /help"
     
     try:
-        photo = FSInputFile("images/ирл.jpg")
+        photo = FSInputFile("images/irl.jpg")
         await reply_photo_with_auto_delete(message, photo=photo, caption=text, delay=10, delete_original=True)
     except Exception:
         await reply_with_auto_delete(message, text, delay=10, delete_original=True)

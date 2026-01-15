@@ -151,7 +151,7 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
     await show_main_menu(callback)
 
 
-@router.message(F.text == "🏠 Главное меню")
+@router.message(F.text == "Главное меню")
 async def text_main_menu(message: Message) -> None:
     """Handle static keyboard main menu button - works like /start."""
     # Get user from database
@@ -185,7 +185,7 @@ async def text_main_menu(message: Message) -> None:
         )
 
 
-@router.message(F.text == "👤 Профиль")
+@router.message(F.text == "Профиль")
 async def text_profile(message: Message) -> None:
     """Handle static keyboard profile button."""
     # Parallel data loading
@@ -200,7 +200,7 @@ async def text_profile(message: Message) -> None:
     await answer_with_brand(message, text, reply_markup=get_profile_keyboard(), image_path=BRAND_IMAGE_PROFILE, static_keyboard=static_kb)
 
 
-@router.message(F.text == "🛠 Сервисы")
+@router.message(F.text == "Сервисы")
 async def text_services(message: Message) -> None:
     """Handle static keyboard services button."""
     services = await get_services()

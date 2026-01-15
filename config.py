@@ -4,8 +4,8 @@ from typing import List
 # ============================================
 # TELEGRAM BOT
 # ============================================
-BOT_TOKEN: str = "8541652170:AAFrWQGHtMxco3YNmpXSW2GVrOe4yuVBJWk"
-BOT_USERNAME: str = "irlteamofficial_bot"
+BOT_TOKEN: str = "8128423924:AAG-LKTTvDgsh5Rey9BEj-5gteilyc-jaGg"
+BOT_USERNAME: str = "irlpro_bot"
 
 # ============================================
 # ADMINS
@@ -49,19 +49,19 @@ WEBAPP_IDEAS: str = "https://ideas-omega-three.vercel.app/"
 # ============================================
 # IMAGES
 # ============================================
-BRAND_IMAGE_WELCOME: str = "images/ирл.jpg"            # Регистрация
-BRAND_IMAGE_LOGO: str = "images/ирл.jpg"               # Команды в чате по умолчанию
+BRAND_IMAGE_WELCOME: str = "images/irl.jpg"            # Регистрация
+BRAND_IMAGE_LOGO: str = "images/irl.jpg"               # Команды в чате по умолчанию
 BRAND_IMAGE_PROFIT: str = "images/профиты.jpg"         # Уведомления о профитах
 
 # Изображения для разделов бота
-BRAND_IMAGE_MAIN_MENU: str = "images/главное меню.jpg" # Главное меню
-BRAND_IMAGE_PROFILE: str = "images/профиль.JPG"        # Профиль
-BRAND_IMAGE_SERVICES: str = "images/сервисы.JPG"       # Сервисы
-BRAND_IMAGE_MENTORS: str = "images/главное меню.jpg"   # Наставники
-BRAND_IMAGE_REFERRALS: str = "images/профиль.JPG"      # Рефералы
+BRAND_IMAGE_MAIN_MENU: str = "images/home.jpg"         # Главное меню
+BRAND_IMAGE_PROFILE: str = "images/profile.JPG"        # Профиль
+BRAND_IMAGE_SERVICES: str = "images/sevices.JPG"       # Сервисы
+BRAND_IMAGE_MENTORS: str = "images/home.jpg"           # Наставники
+BRAND_IMAGE_REFERRALS: str = "images/profile.JPG"      # Рефералы
 BRAND_IMAGE_PROFITS: str = "images/профиты.jpg"        # История профитов
 BRAND_IMAGE_PAYMENTS: str = "images/Реквизиты.jpg"     # Прямые платежи
-BRAND_IMAGE_COMMUNITY: str = "images/главное меню.jpg" # Сообщество/ресурсы
+BRAND_IMAGE_COMMUNITY: str = "images/home.jpg"         # Сообщество/ресурсы
 
 # ============================================
 # RESTART SYSTEM

@@ -42,7 +42,7 @@ async def reply_with_auto_delete(
     delay: int = 10,
     delete_original: bool = True,
     use_photo: bool = True,
-    default_photo_path: str = "images/ирл.jpg",
+    default_photo_path: str = "images/irl.jpg",
     **kwargs
 ) -> Message:
     """
